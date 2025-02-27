@@ -27,13 +27,8 @@ def load_data(uploaded_file):
     df = df[~df['Remark By'].isin(['FGPANGANIBAN', 'KPILUSTRISIMO', 'BLRUIZ', 'MMMEJIA', 'SAHERNANDEZ', 'GPRAMOS'
                                    , 'JGCELIZ', 'JRELEMINO', 'HVDIGNOS', 'RALOPE', 'DRTORRALBA', 'RRCARLIT', 'MEBEJER'
                                    , 'DASANTOS', 'SEMIJARES', 'GMCARIAN', 'RRRECTO', 'JMBORROMEO', 'EUGALERA','JATERRADO'])]
-@st.cache_data
-def load_data(uploaded_file):
     df = pd.read_excel(uploaded_file)
     df = df[~df['Remark'].isin(['Broken Promise', 'New files imported', 'Updates when case reassign to another collector'])]
-
-@st.cache_data
-def load_data(uploaded_file):
     df = pd.read_excel(uploaded_file)
     df = df[~df['Status'].isin(['NEW'])]                           
                             
