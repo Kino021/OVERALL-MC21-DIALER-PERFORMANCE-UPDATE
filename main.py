@@ -173,6 +173,7 @@ if uploaded_file is not None:
                 'Total PTP': total_ptp,
                 'Total RPC': total_rpc,
                 'PTP Amount': ptp_amount,
+                'Balance Amount': balance_amount 
             }])], ignore_index=True)
         
         st.write(collector_summary)
