@@ -159,39 +159,74 @@ if uploaded_file is not None:
             'Day', 'Collector', 'Total Connected', 'Total PTP', 'Total RPC', 'PTP Amount'
         ])
         
-        for (date, collector), collector_group in filtered_df[~filtered_df['Remark By'].str.upper().isin(['SYSTEM'])].groupby([filtered_df['Date'].dt.date, 'Remark By']):
-            total_connected = collector_group[collector_group['Call Status'] == 'CONNECTED']['Account No.'].count()
-            total_ptp = collector_group[collector_group['Status'].str.contains('PTP', na=False) & (collector_group['PTP Amount'] != 0)]['Account No.'].nunique()
-            total_rpc = collector_group[collector_group['Status'].str.contains('RPC', na=False)]['Account No.'].nunique()
-            ptp_amount = collector_group[collector_group['Status'].str.contains('PTP', na=False) & (collector_group['PTP Amount'] != 0)]['PTP Amount'].sum()
-            balance_amount = collector_group[collector_group['Status'].str.contains('CURED', na=False) & (collector_group['Balance'] != 0)]['Balance'].sum()
-            
-            collector_summary = pd.concat([collector_summary, pd.DataFrame([{
-                'Day': date,
-                'Collector': collector,
-                'Total Connected': total_connected,
-                'Total PTP': total_ptp,
-                'Total RPC': total_rpc,
-                'PTP Amount': ptp_amount,
-                'Balance Amount': balance_amount 
-                        cp_collector_summary = pd.DataFrame(columns=[
-            'Day', 'Collector', 'Total Claim Paid','Claim Paid Amount','Balance Amount'
-            }])], ignore_index=True)
-        
-        st.write(collector_summary)
-    with col6:
-        st.write("## Claim Paid Summary Table")
+        import pandas as pd
+import streamlit as st
 
-        # Add date filter
-        min_date = df['Date'].min().date()
-        max_date = df['Date'].max().date()
-        start_date, end_date = st.date_input("Select date ranges", [min_date, max_date], min_value=min_date, max_value=max_date)
+# Assuming `df` is already defined
 
-        filtered_df = df[(df['Date'].dt.date >= start_date) & (df['Date'].dt.date <= end_date)]}
+# Filter the DataFrame
+filtered_df = df[~df['Remark By'].str.upper().isin(['SYSTEM'])]
 
-        cp_collector_summary = pd.DataFrame(columns=[
-            'Day', 'Collector', 'Total Claim Paid','Claim Paid Amount','Balance Amount'
-        ])
-        
-        
-        st.write(cp_collector_summary)
+# Create an empty DataFrame for collector summary
+collector_summary = pd.DataFrame(columns=[
+    'Day', 'Collector', 'Total Connected', 'Total PTP', 'Total RPC', 'PTP Amount', 'Balance Amount'
+])
+
+# Group by date and collector
+for (date, collector), collector_group in filtered_df.groupby([filtered_df['Date'].dt.date, 'Remark By']):
+    # Calculate totals
+    total_connected = collector_group[collector_group['Call Status'] == 'CONNECTED']['Account No.'].count()
+    total_ptp = collector_group[collector_group['Status'].str.contains('PTP', na=False) & (collector_group['PTP Amount'] != 0)]['Account No.'].nunique()
+    total_rpc = collector_group[collector_group['Status'].str.contains('RPC', na=False)]['Account No.'].nunique()
+    ptp_amount = collector_group[collector_group['Status'].str.contains('PTP', na=False) & (collector_group['PTP Amount'] != 0)]['PTP Amount'].sum()
+    balance_amount = collector_group[collector_group['Status'].str.contains('CURED', na=False) & (collector_group['Balance'] != 0)]['Balance'].sum()
+    
+    # Append to the summary DataFrame
+    collector_summary = pd.concat([collector_summary, pd.DataFrame([{
+        'Day': date,
+        'Collector': collector,
+        'Total Connected': total_connected,
+        'Total PTP': total_ptp,
+        'Total RPC': total_rpc,
+        'PTP Amount': ptp_amount,
+        'Balance Amount': balance_amount
+    }])], ignore_index=True)
+
+# Display collector summary in Streamlit
+st.write(collector_summary)
+
+# Claim Paid Summary
+st.write("## Claim Paid Summary Table")
+
+# Add date filter
+min_date = df['Date'].min().date()
+max_date = df['Date'].max().date()
+start_date, end_date = st.date_input("Select date ranges", [min_date, max_date], min_value=min_date, max_value=max_date)
+
+# Filter data based on selected date range
+filtered_df = df[(df['Date'].dt.date >= start_date) & (df['Date'].dt.date <= end_date)]
+
+# Create empty DataFrame for Claim Paid summary
+cp_collector_summary = pd.DataFrame(columns=[
+    'Day', 'Collector', 'Total Claim Paid', 'Claim Paid Amount', 'Balance Amount'
+])
+
+# Assuming you need to calculate claim paid data
+# Placeholder: Here you would include the logic for calculating 'Total Claim Paid', 'Claim Paid Amount', and 'Balance Amount'
+# Example: You can adjust the logic based on your data
+for (date, collector), collector_group in filtered_df.groupby([filtered_df['Date'].dt.date, 'Remark By']):
+    total_claim_paid = collector_group[collector_group['Status'].str.contains('CLAIM PAID', na=False)]['Account No.'].count()
+    claim_paid_amount = collector_group[collector_group['Status'].str.contains('CLAIM PAID', na=False)]['Claim Paid Amount'].sum()
+    balance_amount = collector_group[collector_group['Status'].str.contains('CURED', na=False) & (collector_group['Balance'] != 0)]['Balance'].sum()
+
+    # Append to Claim Paid summary
+    cp_collector_summary = pd.concat([cp_collector_summary, pd.DataFrame([{
+        'Day': date,
+        'Collector': collector,
+        'Total Claim Paid': total_claim_paid,
+        'Claim Paid Amount': claim_paid_amount,
+        'Balance Amount': balance_amount
+    }])], ignore_index=True)
+
+# Display Claim Paid summary in Streamlit
+st.write(cp_collector_summary)
