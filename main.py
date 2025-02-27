@@ -33,16 +33,6 @@ def load_data(uploaded_file):
                                 
     return df
 
-st.title('Daily Remark Summary')
-
-@st.cache_data
-def load_data(uploaded_file):
-    df = pd.read_excel(uploaded_file)
-    df = df[~df['Remark'].isin(['Broken Promise', 'New files imported', 'Updates when case reassign to another collector'])]
-    df = df[~df['Status'].isin(['NEW'])]      
-
-    return df
-
 uploaded_file = st.sidebar.file_uploader("Upload Daily Remark File", type="xlsx")
 
 if uploaded_file is not None:
