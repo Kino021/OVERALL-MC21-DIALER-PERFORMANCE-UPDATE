@@ -192,23 +192,5 @@ for (date, collector), collector_group in filtered_df.groupby([filtered_df['Date
         'Balance Amount': balance_amount
     }])], ignore_index=True)
 
-# Display collector summary in Streamlit
-st.write(collector_summary)
-
-# Claim Paid Summary
-st.write("## Claim Paid Summary Table")
-
-# Add date filter
-min_date = df['Date'].min().date()
-max_date = df['Date'].max().date()
-start_date, end_date = st.date_input("Select date ranges", [min_date, max_date], min_value=min_date, max_value=max_date)
-
-# Filter data based on selected date range
-filtered_df = df[(df['Date'].dt.date >= start_date) & (df['Date'].dt.date <= end_date)]
-
-# Create empty DataFrame for Claim Paid summary
-cp_collector_summary = pd.DataFrame(columns=[
-    'Day', 'Collector', 'Total Claim Paid', 'Claim Paid Amount', 'Balance Amount'
-])
 
 st.write(cp_collector_summary)
