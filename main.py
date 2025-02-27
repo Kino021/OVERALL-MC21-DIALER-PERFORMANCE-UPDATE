@@ -173,9 +173,7 @@ collector_summary = pd.DataFrame(columns=[
 ])
 
 # Group by date and collector
-for (date, collector), collector_group in filtered_df.groupby([filtered_df['Date'].dt.date, 'Remark By']):
-    # Calculate totals
-    total_connected = collector_group[collector_group['Call Status'] == 'CONNECTED']['Account No.'].count()
+ total_connected = collector_group[collector_group['Call Status'] == 'CONNECTED']['Account No.'].count()
     total_ptp = collector_group[collector_group['Status'].str.contains('PTP', na=False) & (collector_group['PTP Amount'] != 0)]['Account No.'].nunique()
     total_rpc = collector_group[collector_group['Status'].str.contains('RPC', na=False)]['Account No.'].nunique()
     ptp_amount = collector_group[collector_group['Status'].str.contains('PTP', na=False) & (collector_group['PTP Amount'] != 0)]['PTP Amount'].sum()
@@ -191,6 +189,3 @@ for (date, collector), collector_group in filtered_df.groupby([filtered_df['Date
         'PTP Amount': ptp_amount,
         'Balance Amount': balance_amount
     }])], ignore_index=True)
-
-
-st.write(cp_collector_summary)
