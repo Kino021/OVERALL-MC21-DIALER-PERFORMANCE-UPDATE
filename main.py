@@ -209,6 +209,6 @@ filtered_df = df[(df['Date'].dt.date >= start_date) & (df['Date'].dt.date <= end
 # Create empty DataFrame for Claim Paid summary
 cp_collector_summary = pd.DataFrame(columns=[
     'Day', 'Collector', 'Total Claim Paid', 'Claim Paid Amount', 'Balance Amount'
-])}
+])
 
 st.write(cp_collector_summary)
