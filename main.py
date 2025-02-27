@@ -209,24 +209,6 @@ filtered_df = df[(df['Date'].dt.date >= start_date) & (df['Date'].dt.date <= end
 # Create empty DataFrame for Claim Paid summary
 cp_collector_summary = pd.DataFrame(columns=[
     'Day', 'Collector', 'Total Claim Paid', 'Claim Paid Amount', 'Balance Amount'
-])
+])}
 
-# Assuming you need to calculate claim paid data
-# Placeholder: Here you would include the logic for calculating 'Total Claim Paid', 'Claim Paid Amount', and 'Balance Amount'
-# Example: You can adjust the logic based on your data
-for (date, collector), collector_group in filtered_df.groupby([filtered_df['Date'].dt.date, 'Remark By']):
-    total_claim_paid = collector_group[collector_group['Status'].str.contains('CLAIM PAID', na=False)]['Account No.'].count()
-    claim_paid_amount = collector_group[collector_group['Status'].str.contains('CLAIM PAID', na=False)]['Claim Paid Amount'].sum()
-    balance_amount = collector_group[collector_group['Status'].str.contains('CURED', na=False) & (collector_group['Balance'] != 0)]['Balance'].sum()
-
-    # Append to Claim Paid summary
-    cp_collector_summary = pd.concat([cp_collector_summary, pd.DataFrame([{
-        'Day': date,
-        'Collector': collector,
-        'Total Claim Paid': total_claim_paid,
-        'Claim Paid Amount': claim_paid_amount,
-        'Balance Amount': balance_amount
-    }])], ignore_index=True)
-
-# Display Claim Paid summary in Streamlit
 st.write(cp_collector_summary)
