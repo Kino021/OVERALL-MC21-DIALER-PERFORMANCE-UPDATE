@@ -24,10 +24,23 @@ st.title('Daily Remark Summary')
 @st.cache_data
 def load_data(uploaded_file):
     df = pd.read_excel(uploaded_file)
+        df = df[~df['Remark By'].isin(['FGPANGANIBAN', 'KPILUSTRISIMO', 'BLRUIZ', 'MMMEJIA', 'SAHERNANDEZ', 'GPRAMOS'
+                                   , 'JGCELIZ', 'JRELEMINO', 'HVDIGNOS', 'RALOPE', 'DRTORRALBA', 'RRCARLIT', 'MEBEJER'
+                                   , 'DASANTOS', 'SEMIJARES', 'GMCARIAN', 'RRRECTO', 'JMBORROMEO', 'EUGALERA','JATERRADO'])]
     df = df[~df['Remark'].isin(['Broken Promise', 'New files imported', 'Updates when case reassign to another collector'])]
     df = df[~df['Status'].isin(['NEW'])]                           
                             
                                 
+    return df
+
+st.title('Daily Remark Summary')
+
+@st.cache_data
+def load_data(uploaded_file):
+    df = pd.read_excel(uploaded_file)
+    df = df[~df['Remark'].isin(['Broken Promise', 'New files imported', 'Updates when case reassign to another collector'])]
+    df = df[~df['Status'].isin(['NEW'])]      
+
     return df
 
 uploaded_file = st.sidebar.file_uploader("Upload Daily Remark File", type="xlsx")
