@@ -187,7 +187,7 @@ if uploaded_file is not None:
         max_date = df['Date'].max().date()
         start_date, end_date = st.date_input("Select date ranges", [min_date, max_date], min_value=min_date, max_value=max_date)
 
-        filtered_df = df[(df['Date'].dt.date >= start_date) & (df['Date'].dt.date <= end_date)]
+        filtered_df = df[(df['Date'].dt.date >= start_date) & (df['Date'].dt.date <= end_date)]}
 
         cp_collector_summary = pd.DataFrame(columns=[
             'Day', 'Collector', 'Total Claim Paid','Claim Paid Amount','Balance Amount'
