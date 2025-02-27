@@ -164,7 +164,7 @@ if uploaded_file is not None:
             total_ptp = collector_group[collector_group['Status'].str.contains('PTP', na=False) & (collector_group['PTP Amount'] != 0)]['Account No.'].nunique()
             total_rpc = collector_group[collector_group['Status'].str.contains('RPC', na=False)]['Account No.'].nunique()
             ptp_amount = collector_group[collector_group['Status'].str.contains('PTP', na=False) & (collector_group['PTP Amount'] != 0)]['PTP Amount'].sum()
-            
+            balance_amount = collector_group[collector_group['Reason For Default'].str.contains('CURED', na=False) & (collector_group['Balance'] != 0)]['Balance'].sum()
             
             collector_summary = pd.concat([collector_summary, pd.DataFrame([{
                 'Day': date,
