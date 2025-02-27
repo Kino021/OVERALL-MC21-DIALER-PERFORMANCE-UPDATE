@@ -174,6 +174,8 @@ if uploaded_file is not None:
                 'Total RPC': total_rpc,
                 'PTP Amount': ptp_amount,
                 'Balance Amount': balance_amount 
+                        cp_collector_summary = pd.DataFrame(columns=[
+            'Day', 'Collector', 'Total Claim Paid','Claim Paid Amount','Balance Amount'
             }])], ignore_index=True)
         
         st.write(collector_summary)
@@ -191,18 +193,5 @@ if uploaded_file is not None:
             'Day', 'Collector', 'Total Claim Paid','Claim Paid Amount','Balance Amount'
         ])
         
-        for (date, collector), collector_group in filtered_df[~filtered_df['Remark By'].str.upper().isin(['SYSTEM'])].groupby([filtered_df['Date'].dt.date, 'Remark By']):
-            claim_paid_count = collector_group[collector_group['Reason For Default'].str.contains('CURED', na=False) ]['Account No.'].nunique()
-            claim_paid_amount = collector_group[collector_group['Reason For Default'].str.contains('CURED', na=False)]['Claim Paid Amount'].sum()
-            balance_amount = collector_group[collector_group['Reason For Default'].str.contains('CURED', na=False) & (collector_group['Balance'] != 0)]['Balance'].sum()
-            
-            
-            cp_collector_summary = pd.concat([cp_collector_summary, pd.DataFrame([{
-                'Day': date,
-                'Collector': collector,
-                'Total Claim Paid': claim_paid_count,
-                'Claim Paid Amount': claim_paid_amount,
-                'Balance Amount': balance_amount
-            }])], ignore_index=True)
         
         st.write(cp_collector_summary)
