@@ -96,7 +96,7 @@ if uploaded_file is not None:
             ptp_acc = group[(group['Status'].str.contains('PTP', na=False)) & (group['PTP Amount'] != 0) & (group['Remark Type'] == remark_type)]['Account No.'].nunique()
             ptp_rate = (ptp_acc / connected_acc * 100) if connected_acc != 0 else None
 
-            call_drop_count = group[(group['Call Status'] == 'DROPPED') & (group['Remark Type'] == remark_type)]['Account No.'].count()
+            call_drop_count = group[(group['Remark Type'] == remark_type) | ((group['Status'] != 'NEGATIVE CALLOUTS'))]['Account No.'].count()
             call_drop_ratio = (call_drop_count / connected * 100) if connected != 0 else None
 
             summary_table = pd.concat([summary_table, pd.DataFrame([{
