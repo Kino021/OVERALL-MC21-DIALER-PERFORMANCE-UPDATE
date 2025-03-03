@@ -173,31 +173,16 @@ uploaded_file = st.file_uploader("Upload your data file", type=["xlsx"])
 if uploaded_file is not None:
     df = load_data(uploaded_file)
     
-    # ------------------- DATE FILTER -------------------
-    min_date = df['Date'].min()
-    max_date = df['Date'].max()
-    
-    selected_date_range = st.date_input(
-        "Select Date Range",
-        [min_date, max_date],
-        min_value=min_date,
-        max_value=max_date
-    )
-    
-    # Filter the data based on selected date range
-    start_date, end_date = selected_date_range
-    filtered_df = df[(df['Date'] >= start_date) & (df['Date'] <= end_date)]
-    
     # Display the title for Collector Summary
     st.markdown('<div class="category-title">📋 PRODUCTIVITY BY COLLECTOR</div>', unsafe_allow_html=True)
     # Generate and display collector summary
-    collector_summary = generate_collector_summary(filtered_df)
+    collector_summary = generate_collector_summary(df)
     st.write(collector_summary)
     
     # Display the title for Cycle Summary (formerly "Service No.")
     st.markdown('<div class="category-title">📋 PRODUCTIVITY BY CYCLE (Seperated per Date)</div>', unsafe_allow_html=True)
     # Generate and display cycle summary per date
-    cycle_summary_by_date = generate_cycle_summary(filtered_df)
+    cycle_summary_by_date = generate_cycle_summary(df)
     
     # Display cycle summary for each date separately
     for date, summary in cycle_summary_by_date.items():
