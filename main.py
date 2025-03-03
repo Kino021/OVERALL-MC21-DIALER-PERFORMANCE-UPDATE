@@ -4,7 +4,7 @@ import pandas as pd
 # ------------------- PAGE CONFIGURATION -------------------
 st.set_page_config(
     layout="wide", 
-    page_title="Productivity Per Agent", 
+    page_title="Productivity Dashboard", 
     page_icon="📊", 
     initial_sidebar_state="expanded"
 )
@@ -32,7 +32,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ------------------- HEADER -------------------
-st.markdown('<div class="header">📊 PRODUCTIVITY PER AGENT</div>', unsafe_allow_html=True)
+st.markdown('<div class="header">📊 PRODUCTIVITY DASHBOARD</div>', unsafe_allow_html=True)
 
 # ------------------- DATA LOADING FUNCTION -------------------
 @st.cache_data
@@ -45,10 +45,10 @@ def load_data(uploaded_file):
                                    'LMLABRADOR', 'EASORIANO'])] 
     return df
 
-# ------------------- DATA PROCESSING FOR AGENT -------------------
+# ------------------- DATA PROCESSING -------------------
 def generate_collector_summary(df):
     collector_summary = pd.DataFrame(columns=[
-        'Category', 'Day', 'Identifier', 'Total Connected', 'Total PTP', 'Total RPC', 'PTP Amount', 'Balance Amount'
+        'Day', 'Collector', 'Total Connected', 'Total PTP', 'Total RPC', 'PTP Amount', 'Balance Amount'
     ])
     
     # Exclude rows where Status is 'PTP FF UP'
@@ -71,9 +71,8 @@ def generate_collector_summary(df):
         ]['Balance'].sum()
 
         collector_summary = pd.concat([collector_summary, pd.DataFrame([{
-            'Category': 'Agent',
             'Day': date,
-            'Identifier': collector,
+            'Collector': collector,
             'Total Connected': total_connected,
             'Total PTP': total_ptp,
             'Total RPC': total_rpc,
@@ -83,9 +82,8 @@ def generate_collector_summary(df):
 
     # Add totals row at the bottom
     totals = {
-        'Category': 'Agent Total',
         'Day': 'Total',
-        'Identifier': '',
+        'Collector': '',
         'Total Connected': collector_summary['Total Connected'].sum(),
         'Total PTP': collector_summary['Total PTP'].sum(),
         'Total RPC': collector_summary['Total RPC'].sum(),
@@ -96,70 +94,17 @@ def generate_collector_summary(df):
 
     return collector_summary
 
-# ------------------- DATA PROCESSING FOR CYCLE -------------------
-def generate_cycle_summary(df):
-    cycle_summary = pd.DataFrame(columns=[
-        'Category', 'Cycle', 'Total Connected', 'Total PTP', 'Total RPC', 'PTP Amount', 'Balance Amount'
-    ])
-    
-    # Filter out rows where 'SERVICE NO.' is NaN or doesn't contain numbers
-    df = df[df['SERVICE NO.'].str.contains(r'\d', na=False)]
-    
-    for cycle, cycle_group in df.groupby('SERVICE NO.'):
-        total_connected = cycle_group[cycle_group['Call Status'] == 'CONNECTED']['Account No.'].count()
-        total_ptp = cycle_group[cycle_group['Status'].str.contains('PTP', na=False) & (cycle_group['PTP Amount'] != 0)]['Account No.'].nunique()
-        
-        # Count rows where Status contains 'RPC'
-        total_rpc = cycle_group[cycle_group['Status'].str.contains('RPC', na=False)]['Account No.'].count()
-
-        ptp_amount = cycle_group[cycle_group['Status'].str.contains('PTP', na=False) & (cycle_group['PTP Amount'] != 0)]['PTP Amount'].sum()
-        
-        # Include Balance Amount only for rows with PTP Amount not equal to 0
-        balance_amount = cycle_group[
-            (cycle_group['Status'].str.contains('PTP', na=False)) & 
-            (cycle_group['PTP Amount'] != 0) & 
-            (cycle_group['Balance'] != 0)
-        ]['Balance'].sum()
-
-        cycle_summary = pd.concat([cycle_summary, pd.DataFrame([{
-            'Category': 'Cycle',
-            'Cycle': cycle,
-            'Total Connected': total_connected,
-            'Total PTP': total_ptp,
-            'Total RPC': total_rpc,
-            'PTP Amount': ptp_amount,
-            'Balance Amount': balance_amount,
-        }])], ignore_index=True)
-
-    # Add totals row at the bottom
-    totals = {
-        'Category': 'Cycle Total',
-        'Cycle': 'Total',
-        'Total Connected': cycle_summary['Total Connected'].sum(),
-        'Total PTP': cycle_summary['Total PTP'].sum(),
-        'Total RPC': cycle_summary['Total RPC'].sum(),
-        'PTP Amount': cycle_summary['PTP Amount'].sum(),
-        'Balance Amount': cycle_summary['Balance Amount'].sum()
-    }
-    cycle_summary = pd.concat([cycle_summary, pd.DataFrame([totals])], ignore_index=True)
-
-    return cycle_summary
-
 # ------------------- FILE UPLOAD AND DISPLAY -------------------
 uploaded_file = st.file_uploader("Upload your data file", type=["xlsx"])
 if uploaded_file is not None:
     df = load_data(uploaded_file)
     
-    # Generate summaries
     collector_summary = generate_collector_summary(df)
-    cycle_summary = generate_cycle_summary(df)
     
-    # Combine both summaries
-    combined_summary = pd.concat([collector_summary, cycle_summary], ignore_index=True)
+    # Sort the collector summary by 'PTP Amount' in descending order, but exclude the totals row
+    collector_summary_sorted = collector_summary[:-1].sort_values(by='PTP Amount', ascending=False)
     
-    # Sort the combined summary by 'PTP Amount' in descending order
-    combined_summary_sorted = combined_summary.sort_values(by='PTP Amount', ascending=False)
+    # Append the totals row back to the sorted DataFrame
+    collector_summary_sorted = pd.concat([collector_summary_sorted, collector_summary.iloc[[-1]]], ignore_index=True)
     
-    # Display the combined results
-    st.subheader("Productivity Per Agent and Cycle")
-    st.write(combined_summary_sorted)
+    st.write(collector_summary_sorted)
