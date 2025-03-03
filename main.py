@@ -64,7 +64,7 @@ def generate_collector_summary(df):
         ptp_amount = collector_group[collector_group['Status'].str.contains('PTP', na=False) & (collector_group['PTP Amount'] != 0)]['PTP Amount'].sum()
         
         # Include Balance Amount only for rows with PTP Amount not equal to 0
-        balance_amount = collector_group[
+        balance_amount = collector_group[ 
             (collector_group['Status'].str.contains('PTP', na=False)) & 
             (collector_group['PTP Amount'] != 0) & 
             (collector_group['Balance'] != 0)
@@ -92,7 +92,11 @@ def generate_collector_summary(df):
     }
     collector_summary = pd.concat([collector_summary, pd.DataFrame([totals])], ignore_index=True)
 
-    return collector_summary
+    # Remove the totals row and sort by 'PTP Amount' in descending order
+    collector_summary_sorted = collector_summary[collector_summary['Day'] != 'Total']
+    collector_summary_sorted = collector_summary_sorted.sort_values(by='PTP Amount', ascending=False)
+
+    return collector_summary_sorted
 
 # ------------------- FILE UPLOAD AND DISPLAY -------------------
 uploaded_file = st.file_uploader("Upload your data file", type=["xlsx"])
