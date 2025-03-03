@@ -4,7 +4,7 @@ import pandas as pd
 # ------------------- PAGE CONFIGURATION -------------------
 st.set_page_config(
     layout="wide", 
-    page_title="Productivity Dashboard", 
+    page_title="Productivity Per Agent", 
     page_icon="📊", 
     initial_sidebar_state="expanded"
 )
@@ -32,7 +32,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ------------------- HEADER -------------------
-st.markdown('<div class="header">📊 PRODUCTIVITY DASHBOARD</div>', unsafe_allow_html=True)
+st.markdown('<div class="header">📊 PRODUCTIVITY PER AGENT</div>', unsafe_allow_html=True)
 
 # ------------------- DATA LOADING FUNCTION -------------------
 @st.cache_data
