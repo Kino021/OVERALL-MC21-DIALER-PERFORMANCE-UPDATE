@@ -56,9 +56,13 @@ uploaded_file = st.file_uploader("Upload Data", type=["xlsx", "csv"])
 if uploaded_file:
     df = load_data(uploaded_file)
 
+    # ------------------- DEBUGGING: Check Available Columns -------------------
+    # Print the columns of the DataFrame to ensure they are named correctly
+    st.write("Columns in the DataFrame:", df.columns)
+
     # ------------------- HOURLY PRODUCTIVITY REPORT -------------------
     # Filter rows with status "PTP" but exclude "PTP FF UP"
-    df_filtered = df[df['Status'].str.contains('PTP') & ~df['Status'].str.contains('PTP FF UP', na=False)]
+    df_filtered = df[df['Status'].str.contains('PTP', na=False) & ~df['Status'].str.contains('PTP FF UP', na=False)]
 
     # Ensure 'Time' is in a datetime format if it's not already
     df_filtered['Time'] = pd.to_datetime(df_filtered['Time'], errors='coerce')
