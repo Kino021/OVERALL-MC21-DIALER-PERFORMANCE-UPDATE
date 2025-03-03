@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import re
 
 # ------------------- PAGE CONFIGURATION -------------------
 st.set_page_config(
@@ -42,29 +41,40 @@ def load_data(uploaded_file):
     df['Date'] = pd.to_datetime(df['Date'])
     df = df[~df['Remark By'].isin(['FGPANGANIBAN', 'KPILUSTRISIMO', 'BLRUIZ', 'MMMEJIA', 'SAHERNANDEZ', 'GPRAMOS',
                                    'JGCELIZ', 'JRELEMINO', 'HVDIGNOS', 'RALOPE', 'DRTORRALBA', 'RRCARLIT', 'MEBEJER',
-                                   'DASANTOS', 'SEMIJARES', 'GMCARIAN', 'RRRECTO', 'JMBORROMEO', 'EUGALERA', 'JATERRADO', 'LMLABRADOR', 'EASORIANO'])]
+                                   'DASANTOS', 'SEMIJARES', 'GMCARIAN', 'RRRECTO', 'JMBORROMEO', 'EUGALERA', 'JATERRADO', 
+                                   'LMLABRADOR', 'EASORIANO'])]
     return df
 
-        collector_summary = pd.DataFrame(columns=[
-            'Day', 'Collector', 'Total Connected', 'Total PTP', 'Total RPC', 'PTP Amount'
-        ])
-        
-        for (date, collector), collector_group in filtered_df[~filtered_df['Remark By'].str.upper().isin(['SYSTEM'])].groupby([filtered_df['Date'].dt.date, 'Remark By']):
-            total_connected = collector_group[collector_group['Call Status'] == 'CONNECTED']['Account No.'].count()
-            total_ptp = collector_group[collector_group['Status'].str.contains('PTP', na=False) & (collector_group['PTP Amount'] != 0)]['Account No.'].nunique()
-            total_rpc = collector_group[collector_group['Status'].str.contains('RPC', na=False)]['Account No.'].nunique()
-            ptp_amount = collector_group[collector_group['Status'].str.contains('PTP', na=False) & (collector_group['PTP Amount'] != 0)]['PTP Amount'].sum()
-            balance_amount = collector_group[collector_group['Status'].str.contains('PTP', na=False) & (collector_group['Balance'] != 0)]['Balance'].sum()
-  
-            
-            collector_summary = pd.concat([collector_summary, pd.DataFrame([{
-                'Day': date,
-                'Collector': collector,
-                'Total Connected': total_connected,
-                'Total PTP': total_ptp,
-                'Total RPC': total_rpc,
-                'PTP Amount': ptp_amount,
-                'Balance Amount': balance_amount,
-            }])], ignore_index=True)
-        
-        st.write(collector_summary)
+# ------------------- DATA PROCESSING -------------------
+def generate_collector_summary(df):
+    collector_summary = pd.DataFrame(columns=[
+        'Day', 'Collector', 'Total Connected', 'Total PTP', 'Total RPC', 'PTP Amount', 'Balance Amount'
+    ])
+    
+    for (date, collector), collector_group in df[~df['Remark By'].str.upper().isin(['SYSTEM'])].groupby([df['Date'].dt.date, 'Remark By']):
+        total_connected = collector_group[collector_group['Call Status'] == 'CONNECTED']['Account No.'].count()
+        total_ptp = collector_group[collector_group['Status'].str.contains('PTP', na=False) & (collector_group['PTP Amount'] != 0)]['Account No.'].nunique()
+        total_rpc = collector_group[collector_group['Status'].str.contains('RPC', na=False)]['Account No.'].nunique()
+        ptp_amount = collector_group[collector_group['Status'].str.contains('PTP', na=False) & (collector_group['PTP Amount'] != 0)]['PTP Amount'].sum()
+        balance_amount = collector_group[collector_group['Status'].str.contains('PTP', na=False) & (collector_group['Balance'] != 0)]['Balance'].sum()
+
+        collector_summary = pd.concat([collector_summary, pd.DataFrame([{
+            'Day': date,
+            'Collector': collector,
+            'Total Connected': total_connected,
+            'Total PTP': total_ptp,
+            'Total RPC': total_rpc,
+            'PTP Amount': ptp_amount,
+            'Balance Amount': balance_amount,
+        }])], ignore_index=True)
+
+    return collector_summary
+
+# ------------------- FILE UPLOAD AND DISPLAY -------------------
+uploaded_file = st.file_uploader("Upload your data file", type=["xlsx"])
+if uploaded_file is not None:
+    df = load_data(uploaded_file)
+    
+    collector_summary = generate_collector_summary(df)
+    
+    st.write(collector_summary)
