@@ -118,6 +118,9 @@ def generate_service_summary(df):
     # Exclude rows where Status is 'PTP FF UP'
     df = df[df['Status'] != 'PTP FF UP']
 
+    # Group by Date and Service No.
+    service_summary_by_date = {}
+
     for (date, service_no), service_group in df[~df['Remark By'].str.upper().isin(['SYSTEM'])].groupby([df['Date'].dt.date, 'Service No.']):
         total_connected = service_group[service_group['Call Status'] == 'CONNECTED']['Account No.'].count()
         total_ptp = service_group[service_group['Status'].str.contains('PTP', na=False) & (service_group['PTP Amount'] != 0)]['Account No.'].nunique()
@@ -134,7 +137,7 @@ def generate_service_summary(df):
             (service_group['Balance'] != 0)
         ]['Balance'].sum()
 
-        service_summary = pd.concat([service_summary, pd.DataFrame([{
+        service_summary = pd.DataFrame([{
             'Date': date,
             'Service No.': service_no,
             'Total Connected': total_connected,
@@ -142,30 +145,28 @@ def generate_service_summary(df):
             'Total RPC': total_rpc,
             'PTP Amount': ptp_amount,
             'Balance Amount': balance_amount,
-        }])], ignore_index=True)
+        }])
 
-    # Add totals row at the bottom
-    totals = {
-        'Date': 'Total',
-        'Service No.': '',
-        'Total Connected': service_summary['Total Connected'].sum(),
-        'Total PTP': service_summary['Total PTP'].sum(),
-        'Total RPC': service_summary['Total RPC'].sum(),
-        'PTP Amount': service_summary['PTP Amount'].sum(),
-        'Balance Amount': service_summary['Balance Amount'].sum()
-    }
-    service_summary = pd.concat([service_summary, pd.DataFrame([totals])], ignore_index=True)
+        # If the date already exists in the dictionary, append the service data
+        if date in service_summary_by_date:
+            service_summary_by_date[date] = pd.concat([service_summary_by_date[date], service_summary], ignore_index=True)
+        else:
+            service_summary_by_date[date] = service_summary
 
-    # Remove the totals row temporarily for sorting
-    service_summary_without_total = service_summary[service_summary['Date'] != 'Total']
+    # Add totals row for each date
+    for date, summary in service_summary_by_date.items():
+        totals = {
+            'Date': 'Total',
+            'Service No.': '',
+            'Total Connected': summary['Total Connected'].sum(),
+            'Total PTP': summary['Total PTP'].sum(),
+            'Total RPC': summary['Total RPC'].sum(),
+            'PTP Amount': summary['PTP Amount'].sum(),
+            'Balance Amount': summary['Balance Amount'].sum()
+        }
+        service_summary_by_date[date] = pd.concat([summary, pd.DataFrame([totals])], ignore_index=True)
 
-    # Sort by 'Date' and 'PTP Amount' in descending order
-    service_summary_sorted = service_summary_without_total.sort_values(by=['Date', 'PTP Amount'], ascending=[True, False])
-
-    # Append the totals row at the bottom again
-    service_summary_sorted = pd.concat([service_summary_sorted, service_summary[service_summary['Date'] == 'Total']], ignore_index=True)
-
-    return service_summary_sorted
+    return service_summary_by_date
 
 # ------------------- FILE UPLOAD AND DISPLAY -------------------
 uploaded_file = st.file_uploader("Upload your data file", type=["xlsx"])
@@ -179,7 +180,11 @@ if uploaded_file is not None:
     st.write(collector_summary)
     
     # Display the title for Service Summary
-    st.markdown('<div class="category-title">📋 PRODUCTIVITY BY SERVICE NO.</div>', unsafe_allow_html=True)
-    # Generate and display service summary
-    service_summary = generate_service_summary(df)
-    st.write(service_summary)
+    st.markdown('<div class="category-title">📋 PRODUCTIVITY BY SERVICE NO. (Seperated per Date)</div>', unsafe_allow_html=True)
+    # Generate and display service summary per date
+    service_summary_by_date = generate_service_summary(df)
+    
+    # Display service summary for each date separately
+    for date, summary in service_summary_by_date.items():
+        st.markdown(f'**Date: {date}**')
+        st.write(summary)
