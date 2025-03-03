@@ -42,10 +42,10 @@ def load_data(uploaded_file):
     df = df[~df['Remark By'].isin(['FGPANGANIBAN', 'KPILUSTRISIMO', 'BLRUIZ', 'MMMEJIA', 'SAHERNANDEZ', 'GPRAMOS',
                                    'JGCELIZ', 'JRELEMINO', 'HVDIGNOS', 'RALOPE', 'DRTORRALBA', 'RRCARLIT', 'MEBEJER',
                                    'DASANTOS', 'SEMIJARES', 'GMCARIAN', 'RRRECTO', 'JMBORROMEO', 'EUGALERA', 'JATERRADO', 
-                                   'LMLABRADOR', 'EASORIANO'])]
+                                   'LMLABRADOR', 'EASORIANO'])]  # Exclude specific users
     return df
 
-# ------------------- DATA PROCESSING -------------------
+# ------------------- DATA PROCESSING FOR COLLECTOR SUMMARY -------------------
 def generate_collector_summary(df):
     collector_summary = pd.DataFrame(columns=[
         'Day', 'Collector', 'Total Connected', 'Total PTP', 'Total RPC', 'PTP Amount', 'Balance Amount'
@@ -103,11 +103,73 @@ def generate_collector_summary(df):
 
     return collector_summary_sorted
 
+# ------------------- DATA PROCESSING FOR SERVICE SUMMARY -------------------
+def generate_service_summary(df):
+    service_summary = pd.DataFrame(columns=[
+        'Day', 'Service No.', 'Total Connected', 'Total PTP', 'Total RPC', 'PTP Amount', 'Balance Amount'
+    ])
+    
+    # Exclude rows where Status is 'PTP FF UP'
+    df = df[df['Status'] != 'PTP FF UP']
+
+    for (date, service_no), service_group in df[~df['Remark By'].str.upper().isin(['SYSTEM'])].groupby([df['Date'].dt.date, 'Service No.']):
+        total_connected = service_group[service_group['Call Status'] == 'CONNECTED']['Account No.'].count()
+        total_ptp = service_group[service_group['Status'].str.contains('PTP', na=False) & (service_group['PTP Amount'] != 0)]['Account No.'].nunique()
+        
+        # Count rows where Status contains 'RPC'
+        total_rpc = service_group[service_group['Status'].str.contains('RPC', na=False)]['Account No.'].count()
+
+        ptp_amount = service_group[service_group['Status'].str.contains('PTP', na=False) & (service_group['PTP Amount'] != 0)]['PTP Amount'].sum()
+        
+        # Include Balance Amount only for rows with PTP Amount not equal to 0
+        balance_amount = service_group[ 
+            (service_group['Status'].str.contains('PTP', na=False)) & 
+            (service_group['PTP Amount'] != 0) & 
+            (service_group['Balance'] != 0)
+        ]['Balance'].sum()
+
+        service_summary = pd.concat([service_summary, pd.DataFrame([{
+            'Day': date,
+            'Service No.': service_no,
+            'Total Connected': total_connected,
+            'Total PTP': total_ptp,
+            'Total RPC': total_rpc,
+            'PTP Amount': ptp_amount,
+            'Balance Amount': balance_amount,
+        }])], ignore_index=True)
+
+    # Add totals row at the bottom
+    totals = {
+        'Day': 'Total',
+        'Service No.': '',
+        'Total Connected': service_summary['Total Connected'].sum(),
+        'Total PTP': service_summary['Total PTP'].sum(),
+        'Total RPC': service_summary['Total RPC'].sum(),
+        'PTP Amount': service_summary['PTP Amount'].sum(),
+        'Balance Amount': service_summary['Balance Amount'].sum()
+    }
+    service_summary = pd.concat([service_summary, pd.DataFrame([totals])], ignore_index=True)
+
+    # Remove the totals row temporarily for sorting
+    service_summary_without_total = service_summary[service_summary['Day'] != 'Total']
+
+    # Sort by 'PTP Amount' in descending order
+    service_summary_sorted = service_summary_without_total.sort_values(by='PTP Amount', ascending=False)
+
+    # Append the totals row at the bottom again
+    service_summary_sorted = pd.concat([service_summary_sorted, service_summary[service_summary['Day'] == 'Total']], ignore_index=True)
+
+    return service_summary_sorted
+
 # ------------------- FILE UPLOAD AND DISPLAY -------------------
 uploaded_file = st.file_uploader("Upload your data file", type=["xlsx"])
 if uploaded_file is not None:
     df = load_data(uploaded_file)
     
+    # Generate collector summary (per collector)
     collector_summary = generate_collector_summary(df)
-    
     st.write(collector_summary)
+    
+    # Generate service summary (per Service No.)
+    service_summary = generate_service_summary(df)
+    st.write(service_summary)
