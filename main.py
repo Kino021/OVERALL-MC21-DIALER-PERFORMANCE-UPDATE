@@ -92,9 +92,14 @@ def generate_collector_summary(df):
     }
     collector_summary = pd.concat([collector_summary, pd.DataFrame([totals])], ignore_index=True)
 
-    # Remove the totals row and sort by 'PTP Amount' in descending order
-    collector_summary_sorted = collector_summary[collector_summary['Day'] != 'Total']
-    collector_summary_sorted = collector_summary_sorted.sort_values(by='PTP Amount', ascending=False)
+    # Remove the totals row temporarily for sorting
+    collector_summary_without_total = collector_summary[collector_summary['Day'] != 'Total']
+
+    # Sort by 'PTP Amount' in descending order
+    collector_summary_sorted = collector_summary_without_total.sort_values(by='PTP Amount', ascending=False)
+
+    # Append the totals row at the bottom again
+    collector_summary_sorted = pd.concat([collector_summary_sorted, collector_summary[collector_summary['Day'] == 'Total']], ignore_index=True)
 
     return collector_summary_sorted
 
