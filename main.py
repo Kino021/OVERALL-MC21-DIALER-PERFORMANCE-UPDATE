@@ -21,6 +21,12 @@ st.markdown("""
             border-radius: 10px;
             font-weight: bold;
         }
+        .category-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-top: 30px;
+            color: #FF8C00;
+        }
         .card {
             background-color: #f8f9fa;
             border-radius: 10px;
@@ -166,10 +172,14 @@ uploaded_file = st.file_uploader("Upload your data file", type=["xlsx"])
 if uploaded_file is not None:
     df = load_data(uploaded_file)
     
-    # Generate collector summary (per collector)
+    # Display the title for Collector Summary
+    st.markdown('<div class="category-title">📋 PRODUCTIVITY BY COLLECTOR</div>', unsafe_allow_html=True)
+    # Generate and display collector summary
     collector_summary = generate_collector_summary(df)
     st.write(collector_summary)
     
-    # Generate service summary (per Service No.)
+    # Display the title for Service Summary
+    st.markdown('<div class="category-title">📋 PRODUCTIVITY BY SERVICE NO.</div>', unsafe_allow_html=True)
+    # Generate and display service summary
     service_summary = generate_service_summary(df)
     st.write(service_summary)
