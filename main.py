@@ -61,10 +61,12 @@ if uploaded_file:
     df_filtered = df[df['Status'].str.contains('PTP') & ~df['Status'].str.contains('PTP FF UP', na=False)]
 
     # Ensure 'Time' is in a datetime format if it's not already
-    df_filtered['Time'] = pd.to_datetime(df_filtered['Time'], errors='coerce').dt.hour + \
-                          pd.to_datetime(df_filtered['Time'], errors='coerce').dt.minute / 60
+    df_filtered['Time'] = pd.to_datetime(df_filtered['Time'], errors='coerce')
 
-    # Define time slots
+    # Check if Time column is parsed correctly
+    st.write(df_filtered[['Time', 'Status', 'PTP AMOUNT']].head())  # Preview data to ensure columns are correct
+
+    # Add 'Time Range' based on hour
     def get_time_range(hour):
         if 6 <= hour < 7:
             return '6:00 AM - 7:00 AM'
@@ -72,21 +74,25 @@ if uploaded_file:
             return '7:01 AM - 8:00 AM'
         elif 8 <= hour < 9:
             return '8:01 AM - 9:00 AM'
-        # Add more hourly ranges as needed
         else:
             return f'{hour}:00 AM - {hour + 1}:00 AM'
 
-    # Apply the time range function
-    df_filtered['Time Range'] = df_filtered['Time'].apply(lambda x: get_time_range(x))
+    # Apply the time range function to 'Time' column
+    df_filtered['Time Range'] = df_filtered['Time'].dt.hour.apply(lambda x: get_time_range(x))
+
+    # Check if 'Time Range' column was created correctly
+    st.write(df_filtered[['Time', 'Time Range', 'Status', 'PTP AMOUNT']].head())  # Preview the DataFrame after adding 'Time Range'
 
     # Group by time range and calculate total PTP count and PTP amount
-    hourly_report = df_filtered.groupby('Time Range').agg(
-        Total_PTP_Count=('Status', 'size'),
-        Total_PTP_Amount=('PTP AMOUNT', 'sum')
-    ).reset_index()
+    try:
+        hourly_report = df_filtered.groupby('Time Range').agg(
+            Total_PTP_Count=('Status', 'size'),
+            Total_PTP_Amount=('PTP AMOUNT', 'sum')
+        ).reset_index()
 
-    # Display the Hourly Productivity Report
-    st.markdown('<div class="category-title">Hourly Productivity Report</div>', unsafe_allow_html=True)
-    st.dataframe(hourly_report)
-
-# Optional: Add more sections for other categories if needed
+        # Display the Hourly Productivity Report
+        st.markdown('<div class="category-title">Hourly Productivity Report</div>', unsafe_allow_html=True)
+        st.dataframe(hourly_report)
+    except KeyError as e:
+        st.error(f"Error in grouping: {e}")
+        st.write("Available columns:", df_filtered.columns)
