@@ -102,13 +102,10 @@ def generate_cycle_summary(df):
         'Category', 'Cycle', 'Total Connected', 'Total PTP', 'Total RPC', 'PTP Amount', 'Balance Amount'
     ])
     
-    # Extract cycle information from 'Service No.' (if it contains a number, it's a cycle)
-    df['Cycle'] = df['Service No.'].str.extract('(\d+)', expand=False)
-
-    # Exclude rows where Cycle is NaN (no number found in 'Service No.')
-    df = df.dropna(subset=['Cycle'])
-
-    for cycle, cycle_group in df.groupby('Cycle'):
+    # Filter out rows where 'SERVICE NO.' is NaN or doesn't contain numbers
+    df = df[df['SERVICE NO.'].str.contains(r'\d', na=False)]
+    
+    for cycle, cycle_group in df.groupby('SERVICE NO.'):
         total_connected = cycle_group[cycle_group['Call Status'] == 'CONNECTED']['Account No.'].count()
         total_ptp = cycle_group[cycle_group['Status'].str.contains('PTP', na=False) & (cycle_group['PTP Amount'] != 0)]['Account No.'].nunique()
         
