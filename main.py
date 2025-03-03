@@ -101,7 +101,10 @@ if uploaded_file is not None:
     
     collector_summary = generate_collector_summary(df)
     
-    # Sort the collector summary by 'PTP Amount' in descending order
-    collector_summary_sorted = collector_summary.sort_values(by='PTP Amount', ascending=False)
+    # Sort the collector summary by 'PTP Amount' in descending order, but exclude the totals row
+    collector_summary_sorted = collector_summary[:-1].sort_values(by='PTP Amount', ascending=False)
+    
+    # Append the totals row back to the sorted DataFrame
+    collector_summary_sorted = pd.concat([collector_summary_sorted, collector_summary.iloc[[-1]]], ignore_index=True)
     
     st.write(collector_summary_sorted)
