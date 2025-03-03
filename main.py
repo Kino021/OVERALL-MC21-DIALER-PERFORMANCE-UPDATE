@@ -109,37 +109,37 @@ def generate_collector_summary(df):
 
     return collector_summary_sorted
 
-# ------------------- DATA PROCESSING FOR SERVICE SUMMARY -------------------
-def generate_service_summary(df):
-    service_summary = pd.DataFrame(columns=[
-        'Date', 'Service No.', 'Total Connected', 'Total PTP', 'Total RPC', 'PTP Amount', 'Balance Amount'
+# ------------------- DATA PROCESSING FOR CYCLE SUMMARY -------------------
+def generate_cycle_summary(df):
+    cycle_summary = pd.DataFrame(columns=[
+        'Date', 'Cycle', 'Total Connected', 'Total PTP', 'Total RPC', 'PTP Amount', 'Balance Amount'
     ])
     
     # Exclude rows where Status is 'PTP FF UP'
     df = df[df['Status'] != 'PTP FF UP']
 
-    # Group by Date and Service No.
-    service_summary_by_date = {}
+    # Group by Date and Cycle (formerly "Service No.")
+    cycle_summary_by_date = {}
 
-    for (date, service_no), service_group in df[~df['Remark By'].str.upper().isin(['SYSTEM'])].groupby([df['Date'].dt.date, 'Service No.']):
-        total_connected = service_group[service_group['Call Status'] == 'CONNECTED']['Account No.'].count()
-        total_ptp = service_group[service_group['Status'].str.contains('PTP', na=False) & (service_group['PTP Amount'] != 0)]['Account No.'].nunique()
+    for (date, cycle), cycle_group in df[~df['Remark By'].str.upper().isin(['SYSTEM'])].groupby([df['Date'].dt.date, 'Service No.']):
+        total_connected = cycle_group[cycle_group['Call Status'] == 'CONNECTED']['Account No.'].count()
+        total_ptp = cycle_group[cycle_group['Status'].str.contains('PTP', na=False) & (cycle_group['PTP Amount'] != 0)]['Account No.'].nunique()
         
         # Count rows where Status contains 'RPC'
-        total_rpc = service_group[service_group['Status'].str.contains('RPC', na=False)]['Account No.'].count()
+        total_rpc = cycle_group[cycle_group['Status'].str.contains('RPC', na=False)]['Account No.'].count()
 
-        ptp_amount = service_group[service_group['Status'].str.contains('PTP', na=False) & (service_group['PTP Amount'] != 0)]['PTP Amount'].sum()
+        ptp_amount = cycle_group[cycle_group['Status'].str.contains('PTP', na=False) & (cycle_group['PTP Amount'] != 0)]['PTP Amount'].sum()
         
         # Include Balance Amount only for rows with PTP Amount not equal to 0
-        balance_amount = service_group[ 
-            (service_group['Status'].str.contains('PTP', na=False)) & 
-            (service_group['PTP Amount'] != 0) & 
-            (service_group['Balance'] != 0)
+        balance_amount = cycle_group[ 
+            (cycle_group['Status'].str.contains('PTP', na=False)) & 
+            (cycle_group['PTP Amount'] != 0) & 
+            (cycle_group['Balance'] != 0)
         ]['Balance'].sum()
 
-        service_summary = pd.DataFrame([{
+        cycle_summary = pd.DataFrame([{
             'Date': date,
-            'Service No.': service_no,
+            'Cycle': cycle,
             'Total Connected': total_connected,
             'Total PTP': total_ptp,
             'Total RPC': total_rpc,
@@ -147,26 +147,26 @@ def generate_service_summary(df):
             'Balance Amount': balance_amount,
         }])
 
-        # If the date already exists in the dictionary, append the service data
-        if date in service_summary_by_date:
-            service_summary_by_date[date] = pd.concat([service_summary_by_date[date], service_summary], ignore_index=True)
+        # If the date already exists in the dictionary, append the cycle data
+        if date in cycle_summary_by_date:
+            cycle_summary_by_date[date] = pd.concat([cycle_summary_by_date[date], cycle_summary], ignore_index=True)
         else:
-            service_summary_by_date[date] = service_summary
+            cycle_summary_by_date[date] = cycle_summary
 
     # Add totals row for each date
-    for date, summary in service_summary_by_date.items():
+    for date, summary in cycle_summary_by_date.items():
         totals = {
             'Date': 'Total',
-            'Service No.': '',
+            'Cycle': '',
             'Total Connected': summary['Total Connected'].sum(),
             'Total PTP': summary['Total PTP'].sum(),
             'Total RPC': summary['Total RPC'].sum(),
             'PTP Amount': summary['PTP Amount'].sum(),
             'Balance Amount': summary['Balance Amount'].sum()
         }
-        service_summary_by_date[date] = pd.concat([summary, pd.DataFrame([totals])], ignore_index=True)
+        cycle_summary_by_date[date] = pd.concat([summary, pd.DataFrame([totals])], ignore_index=True)
 
-    return service_summary_by_date
+    return cycle_summary_by_date
 
 # ------------------- FILE UPLOAD AND DISPLAY -------------------
 uploaded_file = st.file_uploader("Upload your data file", type=["xlsx"])
@@ -179,12 +179,12 @@ if uploaded_file is not None:
     collector_summary = generate_collector_summary(df)
     st.write(collector_summary)
     
-    # Display the title for Service Summary
-    st.markdown('<div class="category-title">📋 PRODUCTIVITY BY SERVICE NO. (Seperated per Date)</div>', unsafe_allow_html=True)
-    # Generate and display service summary per date
-    service_summary_by_date = generate_service_summary(df)
+    # Display the title for Cycle Summary (formerly "Service No.")
+    st.markdown('<div class="category-title">📋 PRODUCTIVITY BY CYCLE (Seperated per Date)</div>', unsafe_allow_html=True)
+    # Generate and display cycle summary per date
+    cycle_summary_by_date = generate_cycle_summary(df)
     
-    # Display service summary for each date separately
-    for date, summary in service_summary_by_date.items():
+    # Display cycle summary for each date separately
+    for date, summary in cycle_summary_by_date.items():
         st.markdown(f'**Date: {date}**')
         st.write(summary)
