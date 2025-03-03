@@ -54,7 +54,7 @@ def load_data(uploaded_file):
 # ------------------- DATA PROCESSING FOR COLLECTOR SUMMARY -------------------
 def generate_collector_summary(df):
     collector_summary = pd.DataFrame(columns=[
-        'Day', 'Collector', 'Total Connected', 'Total PTP', 'Total RPC', 'PTP Amount', 'Balance Amount'
+        'Date', 'Collector', 'Total Connected', 'Total PTP', 'Total RPC', 'PTP Amount', 'Balance Amount'
     ])
     
     # Exclude rows where Status is 'PTP FF UP'
@@ -77,7 +77,7 @@ def generate_collector_summary(df):
         ]['Balance'].sum()
 
         collector_summary = pd.concat([collector_summary, pd.DataFrame([{
-            'Day': date,
+            'Date': date,
             'Collector': collector,
             'Total Connected': total_connected,
             'Total PTP': total_ptp,
@@ -88,7 +88,7 @@ def generate_collector_summary(df):
 
     # Add totals row at the bottom
     totals = {
-        'Day': 'Total',
+        'Date': 'Total',
         'Collector': '',
         'Total Connected': collector_summary['Total Connected'].sum(),
         'Total PTP': collector_summary['Total PTP'].sum(),
@@ -99,20 +99,20 @@ def generate_collector_summary(df):
     collector_summary = pd.concat([collector_summary, pd.DataFrame([totals])], ignore_index=True)
 
     # Remove the totals row temporarily for sorting
-    collector_summary_without_total = collector_summary[collector_summary['Day'] != 'Total']
+    collector_summary_without_total = collector_summary[collector_summary['Date'] != 'Total']
 
-    # Sort by 'PTP Amount' in descending order
-    collector_summary_sorted = collector_summary_without_total.sort_values(by='PTP Amount', ascending=False)
+    # Sort by 'Date' and 'PTP Amount' in descending order
+    collector_summary_sorted = collector_summary_without_total.sort_values(by=['Date', 'PTP Amount'], ascending=[True, False])
 
     # Append the totals row at the bottom again
-    collector_summary_sorted = pd.concat([collector_summary_sorted, collector_summary[collector_summary['Day'] == 'Total']], ignore_index=True)
+    collector_summary_sorted = pd.concat([collector_summary_sorted, collector_summary[collector_summary['Date'] == 'Total']], ignore_index=True)
 
     return collector_summary_sorted
 
 # ------------------- DATA PROCESSING FOR SERVICE SUMMARY -------------------
 def generate_service_summary(df):
     service_summary = pd.DataFrame(columns=[
-        'Day', 'Service No.', 'Total Connected', 'Total PTP', 'Total RPC', 'PTP Amount', 'Balance Amount'
+        'Date', 'Service No.', 'Total Connected', 'Total PTP', 'Total RPC', 'PTP Amount', 'Balance Amount'
     ])
     
     # Exclude rows where Status is 'PTP FF UP'
@@ -135,7 +135,7 @@ def generate_service_summary(df):
         ]['Balance'].sum()
 
         service_summary = pd.concat([service_summary, pd.DataFrame([{
-            'Day': date,
+            'Date': date,
             'Service No.': service_no,
             'Total Connected': total_connected,
             'Total PTP': total_ptp,
@@ -146,7 +146,7 @@ def generate_service_summary(df):
 
     # Add totals row at the bottom
     totals = {
-        'Day': 'Total',
+        'Date': 'Total',
         'Service No.': '',
         'Total Connected': service_summary['Total Connected'].sum(),
         'Total PTP': service_summary['Total PTP'].sum(),
@@ -157,13 +157,13 @@ def generate_service_summary(df):
     service_summary = pd.concat([service_summary, pd.DataFrame([totals])], ignore_index=True)
 
     # Remove the totals row temporarily for sorting
-    service_summary_without_total = service_summary[service_summary['Day'] != 'Total']
+    service_summary_without_total = service_summary[service_summary['Date'] != 'Total']
 
-    # Sort by 'PTP Amount' in descending order
-    service_summary_sorted = service_summary_without_total.sort_values(by='PTP Amount', ascending=False)
+    # Sort by 'Date' and 'PTP Amount' in descending order
+    service_summary_sorted = service_summary_without_total.sort_values(by=['Date', 'PTP Amount'], ascending=[True, False])
 
     # Append the totals row at the bottom again
-    service_summary_sorted = pd.concat([service_summary_sorted, service_summary[service_summary['Day'] == 'Total']], ignore_index=True)
+    service_summary_sorted = pd.concat([service_summary_sorted, service_summary[service_summary['Date'] == 'Total']], ignore_index=True)
 
     return service_summary_sorted
 
