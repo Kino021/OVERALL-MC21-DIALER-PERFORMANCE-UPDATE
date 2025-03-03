@@ -52,15 +52,18 @@ def load_data(uploaded_file):
     return df
 
 # ------------------- DATA PROCESSING FOR COLLECTOR SUMMARY -------------------
-def generate_collector_summary(df):
+def generate_collector_summary(df, start_date, end_date):
     collector_summary = pd.DataFrame(columns=[
         'Date', 'Collector', 'Total Connected', 'Total PTP', 'Total RPC', 'PTP Amount', 'Balance Amount'
     ])
     
-    # Exclude rows where Status is 'PTP FF UP'
-    df = df[df['Status'] != 'PTP FF UP']
+    # Filter data based on the selected date range
+    df_filtered = df[(df['Date'] >= start_date) & (df['Date'] <= end_date)]
 
-    for (date, collector), collector_group in df[~df['Remark By'].str.upper().isin(['SYSTEM'])].groupby([df['Date'].dt.date, 'Remark By']):
+    # Exclude rows where Status is 'PTP FF UP'
+    df_filtered = df_filtered[df_filtered['Status'] != 'PTP FF UP']
+
+    for (date, collector), collector_group in df_filtered[~df_filtered['Remark By'].str.upper().isin(['SYSTEM'])].groupby([df_filtered['Date'].dt.date, 'Remark By']):
         total_connected = collector_group[collector_group['Call Status'] == 'CONNECTED']['Account No.'].count()
         total_ptp = collector_group[collector_group['Status'].str.contains('PTP', na=False) & (collector_group['PTP Amount'] != 0)]['Account No.'].nunique()
         
@@ -173,10 +176,14 @@ uploaded_file = st.file_uploader("Upload your data file", type=["xlsx"])
 if uploaded_file is not None:
     df = load_data(uploaded_file)
     
+    # ------------------- DATE FILTERING -------------------
+    start_date = st.date_input('Select start date', df['Date'].min())
+    end_date = st.date_input('Select end date', df['Date'].max())
+
     # Display the title for Collector Summary
     st.markdown('<div class="category-title">📋 PRODUCTIVITY BY COLLECTOR</div>', unsafe_allow_html=True)
     # Generate and display collector summary
-    collector_summary = generate_collector_summary(df)
+    collector_summary = generate_collector_summary(df, start_date, end_date)
     st.write(collector_summary)
     
     # Display the title for Cycle Summary (formerly "Service No.")
