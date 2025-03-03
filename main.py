@@ -48,7 +48,7 @@ def load_data(uploaded_file):
 # ------------------- DATA PROCESSING FOR AGENT -------------------
 def generate_collector_summary(df):
     collector_summary = pd.DataFrame(columns=[
-        'Day', 'Collector', 'Total Connected', 'Total PTP', 'Total RPC', 'PTP Amount', 'Balance Amount'
+        'Category', 'Day', 'Identifier', 'Total Connected', 'Total PTP', 'Total RPC', 'PTP Amount', 'Balance Amount'
     ])
     
     # Exclude rows where Status is 'PTP FF UP'
@@ -71,8 +71,9 @@ def generate_collector_summary(df):
         ]['Balance'].sum()
 
         collector_summary = pd.concat([collector_summary, pd.DataFrame([{
+            'Category': 'Agent',
             'Day': date,
-            'Collector': collector,
+            'Identifier': collector,
             'Total Connected': total_connected,
             'Total PTP': total_ptp,
             'Total RPC': total_rpc,
@@ -82,8 +83,9 @@ def generate_collector_summary(df):
 
     # Add totals row at the bottom
     totals = {
+        'Category': 'Agent Total',
         'Day': 'Total',
-        'Collector': '',
+        'Identifier': '',
         'Total Connected': collector_summary['Total Connected'].sum(),
         'Total PTP': collector_summary['Total PTP'].sum(),
         'Total RPC': collector_summary['Total RPC'].sum(),
@@ -97,7 +99,7 @@ def generate_collector_summary(df):
 # ------------------- DATA PROCESSING FOR CYCLE -------------------
 def generate_cycle_summary(df):
     cycle_summary = pd.DataFrame(columns=[
-        'Cycle', 'Total Connected', 'Total PTP', 'Total RPC', 'PTP Amount', 'Balance Amount'
+        'Category', 'Cycle', 'Total Connected', 'Total PTP', 'Total RPC', 'PTP Amount', 'Balance Amount'
     ])
     
     # Extract cycle information from 'Service No.' (if it contains a number, it's a cycle)
@@ -123,6 +125,7 @@ def generate_cycle_summary(df):
         ]['Balance'].sum()
 
         cycle_summary = pd.concat([cycle_summary, pd.DataFrame([{
+            'Category': 'Cycle',
             'Cycle': cycle,
             'Total Connected': total_connected,
             'Total PTP': total_ptp,
@@ -133,6 +136,7 @@ def generate_cycle_summary(df):
 
     # Add totals row at the bottom
     totals = {
+        'Category': 'Cycle Total',
         'Cycle': 'Total',
         'Total Connected': cycle_summary['Total Connected'].sum(),
         'Total PTP': cycle_summary['Total PTP'].sum(),
@@ -153,16 +157,12 @@ if uploaded_file is not None:
     collector_summary = generate_collector_summary(df)
     cycle_summary = generate_cycle_summary(df)
     
-    # Sort the summaries by 'PTP Amount' in descending order
-    collector_summary_sorted = collector_summary[:-1].sort_values(by='PTP Amount', ascending=False)
-    collector_summary_sorted = pd.concat([collector_summary_sorted, collector_summary.iloc[[-1]]], ignore_index=True)
-
-    cycle_summary_sorted = cycle_summary[:-1].sort_values(by='PTP Amount', ascending=False)
-    cycle_summary_sorted = pd.concat([cycle_summary_sorted, cycle_summary.iloc[[-1]]], ignore_index=True)
-
-    # Display the results
-    st.subheader("Productivity Per Agent")
-    st.write(collector_summary_sorted)
+    # Combine both summaries
+    combined_summary = pd.concat([collector_summary, cycle_summary], ignore_index=True)
     
-    st.subheader("Productivity Per Cycle")
-    st.write(cycle_summary_sorted)
+    # Sort the combined summary by 'PTP Amount' in descending order
+    combined_summary_sorted = combined_summary.sort_values(by='PTP Amount', ascending=False)
+    
+    # Display the combined results
+    st.subheader("Productivity Per Agent and Cycle")
+    st.write(combined_summary_sorted)
