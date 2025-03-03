@@ -40,9 +40,9 @@ def load_data(uploaded_file):
     df = pd.read_excel(uploaded_file)
     df['Date'] = pd.to_datetime(df['Date'])
     df = df[~df['Remark By'].isin(['FGPANGANIBAN', 'KPILUSTRISIMO', 'BLRUIZ', 'MMMEJIA', 'SAHERNANDEZ', 'GPRAMOS',
-                                   'JGCELIZ', 'JRELEMINO', 'HVDIGNOS', 'RALOPE', 'RRCARLIT', 'MEBEJER',
+                                   'JGCELIZ', 'JRELEMINO', 'HVDIGNOS', 'RALOPE', 'DRTORRALBA', 'RRCARLIT', 'MEBEJER',
                                    'DASANTOS', 'SEMIJARES', 'GMCARIAN', 'RRRECTO', 'JMBORROMEO', 'EUGALERA', 'JATERRADO', 
-                                   'LMLABRADOR', 'EASORIANO'])]
+                                   'LMLABRADOR', 'EASORIANO'])] 
     return df
 
 # ------------------- DATA PROCESSING -------------------
@@ -101,12 +101,7 @@ if uploaded_file is not None:
     
     collector_summary = generate_collector_summary(df)
     
-    # Group by date for hierarchical display
-    for date, date_group in collector_summary.groupby('Day'):
-        with st.expander(f"Date: {date}"):
-            for collector, collector_group in date_group.groupby('Collector'):
-                with st.expander(f"Collector: {collector}"):
-                    st.write(collector_group.drop(columns=['Day', 'Collector']))
-
-    # Optionally, show total row outside the expanders
-    st.write(collector_summary[collector_summary['Day'] == 'Total'])
+    # Sort the collector summary by 'PTP Amount' in descending order
+    collector_summary_sorted = collector_summary.sort_values(by='PTP Amount', ascending=False)
+    
+    st.write(collector_summary_sorted)
