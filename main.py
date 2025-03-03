@@ -57,7 +57,10 @@ def generate_collector_summary(df):
     for (date, collector), collector_group in df[~df['Remark By'].str.upper().isin(['SYSTEM'])].groupby([df['Date'].dt.date, 'Remark By']):
         total_connected = collector_group[collector_group['Call Status'] == 'CONNECTED']['Account No.'].count()
         total_ptp = collector_group[collector_group['Status'].str.contains('PTP', na=False) & (collector_group['PTP Amount'] != 0)]['Account No.'].nunique()
-        total_rpc = collector_group[collector_group['Status'].str.contains('RPC', na=False)]['Account No.'].nunique()
+        
+        # Count rows where Status contains 'RPC'
+        total_rpc = collector_group[collector_group['Status'].str.contains('RPC', na=False)]['Account No.'].count()
+
         ptp_amount = collector_group[collector_group['Status'].str.contains('PTP', na=False) & (collector_group['PTP Amount'] != 0)]['PTP Amount'].sum()
         
         # Include Balance Amount only for rows with PTP Amount not equal to 0
