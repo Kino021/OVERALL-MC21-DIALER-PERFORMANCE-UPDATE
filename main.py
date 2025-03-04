@@ -3,31 +3,74 @@ import pandas as pd
 
 # ------------------- PAGE CONFIGURATION -------------------
 st.set_page_config(
-    layout="wide", 
-    page_title="PRODUCTIVITY PER AGENT", 
-    page_icon="📊", 
+    layout="wide",
+    page_title="PRODUCTIVITY PER AGENT",
+    page_icon="📊",
     initial_sidebar_state="expanded"
 )
+
+# ------------------- GLOBAL STYLING -------------------
+st.markdown("""
+    <style>
+        .header {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(to right, #FFD700, #FFA500);
+            color: white;
+            font-size: 24px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+        .category-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-top: 30px;
+            color: #FF8C00;
+        }
+        .card {
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+# ------------------- HEADER -------------------
+st.markdown('<div class="header">📊 PRODUCTIVITY PER AGENT</div>', unsafe_allow_html=True)
 
 # ------------------- FILE UPLOAD -------------------
 uploaded_file = st.file_uploader("Upload your data file", type=["csv", "xlsx"])
 
-# ------------------- DATA LOADING FUNCTION -------------------
+# ------------------- FUNCTION TO LOAD DATA -------------------
 def load_data(file):
-    if file is not None:
+    """Loads CSV or Excel file and ensures proper data formatting."""
+    try:
         if file.name.endswith(".csv"):
             df = pd.read_csv(file)
         else:
             df = pd.read_excel(file)
-        df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
-        return df
-    return None
 
-# ------------------- HOURLY SUMMARY FUNCTION -------------------
+        # Convert 'Date' column to datetime
+        df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
+        
+        # Ensure 'Time' column is parsed correctly
+        df['Time'] = pd.to_datetime(df['Time'], format='%H:%M:%S', errors='coerce').dt.time
+        
+        return df
+    except Exception as e:
+        st.error(f"Error loading file: {e}")
+        return None
+
+# ------------------- FUNCTION TO GENERATE HOURLY SUMMARY -------------------
 def generate_time_summary(df):
-    df = df[df['Status'] != 'PTP FF UP']  # Exclude rows where Status is 'PTP FF UP'
-    
-    # Define time intervals
+    """Creates hourly PTP productivity summary."""
+    time_summary_by_date = {}
+
+    df = df[df['Status'] != 'PTP FF UP']  # Exclude unnecessary statuses
+
+    # Define time bins
     time_bins = [
         "06:00-07:00 AM", "07:01-08:00 AM", "08:01-09:00 AM", "09:01-10:00 AM",
         "10:01-11:00 AM", "11:01-12:00 PM", "12:01-01:00 PM", "01:01-02:00 PM",
@@ -36,48 +79,74 @@ def generate_time_summary(df):
     ]
 
     time_intervals = [
-        ("06:00", "07:00"), ("07:01", "08:00"), ("08:01", "09:00"), ("09:01", "10:00"),
-        ("10:01", "11:00"), ("11:01", "12:00"), ("12:01", "13:00"), ("13:01", "14:00"),
-        ("14:01", "15:00"), ("15:01", "16:00"), ("16:01", "17:00"), ("17:01", "18:00"),
+        ("06:00", "07:00"), ("07:01", "08:00"), ("08:01", "09:00"),
+        ("09:01", "10:00"), ("10:01", "11:00"), ("11:01", "12:00"),
+        ("12:01", "13:00"), ("13:01", "14:00"), ("14:01", "15:00"),
+        ("15:01", "16:00"), ("16:01", "17:00"), ("17:01", "18:00"),
         ("18:01", "19:00"), ("19:01", "20:00"), ("20:01", "21:00")
     ]
 
-    # Convert time to minutes
-    def time_to_minutes(time_str):
-        h, m = map(int, time_str.split(":"))
-        return h * 60 + m
+    def time_to_minutes(time_obj):
+        return time_obj.hour * 60 + time_obj.minute
 
-    bins = [time_to_minutes(start) for start, _ in time_intervals] + [1260]  # Ensure bins are sorted
+    bins = [time_to_minutes(pd.to_datetime(start, format='%H:%M').time()) for start, _ in time_intervals] + [1260]
 
-    df['Time'] = pd.to_datetime(df['Time'], format='%H:%M:%S', errors='coerce').dt.time
-    df = df.dropna(subset=['Time'])
-
-    df['Time in Minutes'] = df['Time'].apply(lambda t: t.hour * 60 + t.minute)
-    
-    # Ensure bins are sorted properly
-    bins = sorted(set(bins))  # Remove duplicates and sort to ensure they are increasing
-
-    # Apply time ranges
+    df['Time in Minutes'] = df['Time'].apply(time_to_minutes)
     df['Time Range'] = pd.cut(df['Time in Minutes'], bins=bins, labels=time_bins, right=False)
 
-    df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
+    for (date, time_range), time_group in df[~df['Remark By'].astype(str).str.upper().isin(['SYSTEM'])].groupby([df['Date'].dt.date, 'Time Range']):
+        time_summary_by_date.setdefault(date, []).append({
+            'Time Range': time_range,
+            'Total Connected': (time_group['Call Status'] == 'CONNECTED').sum(),
+            'Total PTP': ((time_group['Status'].str.contains('PTP', na=False)) & (time_group['PTP Amount'] != 0)).sum(),
+            'Total RPC': (time_group['Status'].str.contains('RPC', na=False)).sum(),
+            'PTP Amount': time_group.loc[time_group['Status'].str.contains('PTP', na=False), 'PTP Amount'].sum(),
+            'Balance Amount': time_group.loc[time_group['Status'].str.contains('PTP', na=False), 'Balance'].sum(),
+        })
 
-    summary_data = df.groupby(['Date', 'Time Range']).agg(
+    return time_summary_by_date
+
+# ------------------- FUNCTION TO GENERATE COLLECTOR SUMMARY -------------------
+def generate_collector_summary(df):
+    """Creates a summary of productivity by collector."""
+    return df.groupby(['Date', 'Remark By']).agg(
         Total_Connected=('Call Status', lambda x: (x == 'CONNECTED').sum()),
-        Total_PTP=('Status', lambda x: x.str.contains('PTP', na=False).sum()),
-        Total_RPC=('Status', lambda x: x.str.contains('RPC', na=False).sum()),
+        Total_PTP=('Status', lambda x: (x.str.contains('PTP', na=False)).sum()),
+        Total_RPC=('Status', lambda x: (x.str.contains('RPC', na=False)).sum()),
         PTP_Amount=('PTP Amount', 'sum'),
         Balance_Amount=('Balance', 'sum')
     ).reset_index()
 
-    return summary_data
+# ------------------- FUNCTION TO GENERATE CYCLE SUMMARY -------------------
+def generate_cycle_summary(df):
+    """Creates a summary of productivity by cycle."""
+    return df.groupby(['Date', 'Service No.']).agg(
+        Total_Connected=('Call Status', lambda x: (x == 'CONNECTED').sum()),
+        Total_PTP=('Status', lambda x: (x.str.contains('PTP', na=False)).sum()),
+        Total_RPC=('Status', lambda x: (x.str.contains('RPC', na=False)).sum()),
+        PTP_Amount=('PTP Amount', 'sum'),
+        Balance_Amount=('Balance', 'sum')
+    ).reset_index()
 
 # ------------------- MAIN APP LOGIC -------------------
-df = load_data(uploaded_file)
+if uploaded_file is not None:
+    df = load_data(uploaded_file)
 
-if df is not None:
-    st.markdown("### 📋 PRODUCTIVITY BY HOUR (Separated per Date)")
-    hourly_summary = generate_time_summary(df)
-    st.dataframe(hourly_summary)
-else:
-    st.warning("Please upload a file to generate reports.")
+    if df is not None:
+        # Display Hourly Summary
+        st.markdown('<h2 style="text-align:center;">📊 Hourly PTP Summary</h2>', unsafe_allow_html=True)
+        time_summary_by_date = generate_time_summary(df)
+        for date, summary in time_summary_by_date.items():
+            st.markdown(f"### {date}")
+            st.dataframe(pd.DataFrame(summary))
+
+        # Display Collector Summary
+        st.markdown('<div class="category-title">📋 PRODUCTIVITY BY COLLECTOR</div>', unsafe_allow_html=True)
+        collector_summary = generate_collector_summary(df)
+        st.dataframe(collector_summary)
+
+        # Display Cycle Summary
+        st.markdown('<div class="category-title">📋 PRODUCTIVITY BY CYCLE</div>', unsafe_allow_html=True)
+        cycle_summary = generate_cycle_summary(df)
+        st.dataframe(cycle_summary)
+
