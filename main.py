@@ -56,15 +56,9 @@ uploaded_file = st.file_uploader("Upload Data", type=["xlsx", "csv"])
 if uploaded_file:
     df = load_data(uploaded_file)
 
-    # ------------------- DEBUGGING: Check Available Columns -------------------
-    st.write("Columns in the DataFrame:", df.columns)
-
     # ------------------- CLEAN COLUMN NAMES -------------------
     # Strip leading/trailing spaces and convert to lowercase
     df.columns = df.columns.str.strip().str.lower()
-
-    # ------------------- DEBUGGING: Show First Few Rows -------------------
-    st.write("First few rows of the DataFrame:", df.head())
 
     # ------------------- HOURLY PRODUCTIVITY REPORT -------------------
     # Filter rows with status "PTP" but exclude "PTP FF UP"
@@ -72,9 +66,6 @@ if uploaded_file:
 
     # Ensure 'time' is in a datetime format if it's not already
     df_filtered['time'] = pd.to_datetime(df_filtered['time'], errors='coerce')
-
-    # Check if Time column is parsed correctly
-    st.write(df_filtered[['time', 'status', 'ptp amount']].head())  # Preview data to ensure columns are correct
 
     # Add 'Time Range' based on hour
     def get_time_range(hour):
@@ -85,10 +76,24 @@ if uploaded_file:
         elif 8 <= hour < 9:
             return '8:01 AM - 9:00 AM'
         else:
-            return f'{hour}:00 AM - {hour + 1}:00 AM'
+            return None  # Exclude any other times
 
     # Apply the time range function to 'Time' column
     df_filtered['Time Range'] = df_filtered['time'].dt.hour.apply(lambda x: get_time_range(x))
 
-    # Check if 'Time Range' column was created correctly
-    st.write(df_filtered[['time', 'Time Range', 'status', 'ptp amount']].head())  # Preview the DataFrame after adding 'Time Ra
+    # Drop rows where 'Time Range' is None (i.e., times outside 6-9 AM)
+    df_filtered = df_filtered[df_filtered['Time Range'].notna()]
+
+    # Group by time range and calculate total PTP count and PTP amount
+    try:
+        hourly_report = df_filtered.groupby('Time Range').agg(
+            Total_PTP_Count=('status', 'size'),
+            Total_PTP_Amount=('ptp amount', 'sum')
+        ).reset_index()
+
+        # Display the Hourly Productivity Report
+        st.markdown('<div class="category-title">Hourly Productivity Report</div>', unsafe_allow_html=True)
+        st.dataframe(hourly_report)
+    except KeyError as e:
+        st.error(f"Error in grouping: {e}")
+        st.write("Available columns:", df_filtered.columns)
