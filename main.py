@@ -75,13 +75,37 @@ if uploaded_file:
             return '7:01 AM - 8:00 AM'
         elif 8 <= hour < 9:
             return '8:01 AM - 9:00 AM'
+        elif 9 <= hour < 10:
+            return '9:01 AM - 10:00 AM'
+        elif 10 <= hour < 11:
+            return '10:01 AM - 11:00 AM'
+        elif 11 <= hour < 12:
+            return '11:01 AM - 12:00 PM'
+        elif 12 <= hour < 13:
+            return '12:01 PM - 1:00 PM'
+        elif 13 <= hour < 14:
+            return '1:01 PM - 2:00 PM'
+        elif 14 <= hour < 15:
+            return '2:01 PM - 3:00 PM'
+        elif 15 <= hour < 16:
+            return '3:01 PM - 4:00 PM'
+        elif 16 <= hour < 17:
+            return '4:01 PM - 5:00 PM'
+        elif 17 <= hour < 18:
+            return '5:01 PM - 6:00 PM'
+        elif 18 <= hour < 19:
+            return '6:01 PM - 7:00 PM'
+        elif 19 <= hour < 20:
+            return '7:01 PM - 8:00 PM'
+        elif 20 <= hour < 21:
+            return '8:01 PM - 9:00 PM'
         else:
             return None  # Exclude any other times
 
     # Apply the time range function to 'Time' column
     df_filtered['Time Range'] = df_filtered['time'].dt.hour.apply(lambda x: get_time_range(x))
 
-    # Drop rows where 'Time Range' is None (i.e., times outside 6-9 AM)
+    # Drop rows where 'Time Range' is None (i.e., times outside the defined range)
     df_filtered = df_filtered[df_filtered['Time Range'].notna()]
 
     # Group by time range and calculate total PTP count and PTP amount
