@@ -62,7 +62,9 @@ if uploaded_file:
     # ------------------- HOURLY PRODUCTIVITY REPORT -------------------
     df_filtered = df[df['status'].str.contains('PTP', na=False) & ~df['status'].str.contains('PTP FF UP', na=False)]
     df_filtered['time'] = pd.to_datetime(df_filtered['time'], errors='coerce')
+    df_filtered['ptp amount'] = pd.to_numeric(df_filtered['ptp amount'], errors='coerce').fillna(0)
 
+    # Function to categorize time ranges
     def get_time_range(hour):
         if 6 <= hour < 7:
             return '6:00 AM - 7:00 AM'
@@ -100,9 +102,12 @@ if uploaded_file:
     df_filtered['Time Range'] = df_filtered['time'].dt.hour.apply(lambda x: get_time_range(x))
     df_filtered = df_filtered[df_filtered['Time Range'].notna()]
 
+    # Filter only rows where 'PTP AMOUNT' is greater than 0
+    df_valid_ptp = df_filtered[df_filtered['ptp amount'] > 0]
+
     try:
-        hourly_report = df_filtered.groupby('Time Range').agg(
-            Total_PTP_Count=('status', 'size'),
+        hourly_report = df_valid_ptp.groupby('Time Range').agg(
+            Total_PTP_Count=('status', 'size'),  # Count only rows where PTP Amount > 0
             Total_PTP_Amount=('ptp amount', 'sum')
         ).reset_index()
 
