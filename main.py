@@ -17,52 +17,37 @@ time_intervals = [
 # Ensure 'Time' column is in datetime format
 df['Time'] = pd.to_datetime(df['Time'], format='%H:%M:%S').dt.time
 
-# Initialize DataFrame
-time_summary = pd.DataFrame(columns=['Time Range', 'Total Connected', 'Total PTP', 'Total RPC', 'PTP Amount', 'Balance Amount'])
+# Initialize empty DataFrame
+time_summary = pd.DataFrame(columns=['Time Range', 'PTP Count', 'PTP Amount'])
 
 for i, (start, end) in enumerate(time_intervals):
     time_mask = (df['Time'] >= pd.to_datetime(start, format='%H:%M:%S').time()) & \
                 (df['Time'] <= pd.to_datetime(end, format='%H:%M:%S').time())
 
-    # Apply filters
-    df_filtered = df[time_mask]
+    # Apply filters for valid PTP cases
+    ptp_valid = df[time_mask & df['Status'].str.contains('PTP', na=False) & (df['PTP Amount'] > 0)]
 
-    # Total Connected: Unique 'Account No.' where 'Call Status' = CONNECTED
-    total_connected = df_filtered[df_filtered['Call Status'] == 'CONNECTED']['Account No.'].nunique()
+    # Get PTP count based on unique 'Account No.'
+    ptp_count = ptp_valid['Account No.'].nunique()
     
-    # Total PTP: Unique 'Account No.' where 'Status' contains 'PTP' & 'PTP Amount' > 0
-    total_ptp = df_filtered[df_filtered['Status'].str.contains('PTP', na=False) & (df_filtered['PTP Amount'] > 0)]['Account No.'].nunique()
-    
-    # Total RPC: Count where 'Status' contains 'RPC'
-    total_rpc = df_filtered[df_filtered['Status'].str.contains('RPC', na=False)]['Account No.'].count()
-    
-    # PTP Amount: Sum where 'PTP Amount' > 0
-    ptp_amount = df_filtered[df_filtered['PTP Amount'] > 0]['PTP Amount'].sum()
-    
-    # Balance Amount: Sum where 'Balance' > 0 & 'PTP Amount' > 0
-    balance_amount = df_filtered[(df_filtered['Balance'] > 0) & (df_filtered['PTP Amount'] > 0)]['Balance'].sum()
+    # Sum the valid PTP Amount
+    ptp_amount = ptp_valid['PTP Amount'].sum()
 
     time_summary = pd.concat([time_summary, pd.DataFrame([{
         'Time Range': time_bins[i],
-        'Total Connected': total_connected,
-        'Total PTP': total_ptp,
-        'Total RPC': total_rpc,
-        'PTP Amount': ptp_amount,
-        'Balance Amount': balance_amount
+        'PTP Count': ptp_count,
+        'PTP Amount': ptp_amount
     }])], ignore_index=True)
 
 # ------------------- ADD TOTAL ROW -------------------
 totals = pd.DataFrame([{
     'Time Range': 'Total',
-    'Total Connected': time_summary['Total Connected'].sum(),
-    'Total PTP': time_summary['Total PTP'].sum(),
-    'Total RPC': time_summary['Total RPC'].sum(),
-    'PTP Amount': time_summary['PTP Amount'].sum(),
-    'Balance Amount': time_summary['Balance Amount'].sum()
+    'PTP Count': time_summary['PTP Count'].sum(),
+    'PTP Amount': time_summary['PTP Amount'].sum()
 }])
 
 time_summary = pd.concat([time_summary, totals], ignore_index=True)
 
 # Display Time Summary Table
-st.markdown('<div class="category-title">Hourly Productivity Summary</div>', unsafe_allow_html=True)
+st.markdown('<div class="category-title">Hourly PTP Summary</div>', unsafe_allow_html=True)
 st.dataframe(time_summary)
