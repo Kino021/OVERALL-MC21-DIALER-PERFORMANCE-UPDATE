@@ -50,59 +50,80 @@ if uploaded_file is not None:
     elif uploaded_file.name.endswith('.xlsx'):
         df = pd.read_excel(uploaded_file)
 
-# ------------------- DATA PROCESSING FOR TIME AND CYCLE SUMMARY -------------------
-def generate_time_cycle_summary(df):
+# ------------------- DATA PROCESSING FOR CYCLE AND TIME SUMMARY -------------------
+def generate_cycle_summary(df):
     df = df[df['Status'] != 'PTP FF UP']
+    cycle_summary_by_date = {}
     
-    time_intervals = [
-        (21600, 25200), (25201, 28800), (28801, 32400), (32401, 36000), 
-        (36001, 39600), (39601, 43200), (43201, 46800), (46801, 50400), 
-        (50401, 54000), (54001, 57600), (57601, 61200), (61201, 64800), 
-        (64801, 68400), (68401, 72000), (72001, 75600)
-    ]
-    
-    time_labels = [
-        "06:00-07:00 AM", "07:01-08:00 AM", "08:01-09:00 AM", "09:01-10:00 AM",
-        "10:01-11:00 AM", "11:01-12:00 PM", "12:01-01:00 PM", "01:01-02:00 PM",
-        "02:01-03:00 PM", "03:01-04:00 PM", "04:01-05:00 PM", "05:01-06:00 PM",
-        "06:01-07:00 PM", "07:01-08:00 PM", "08:01-09:00 PM"
-    ]
-    
-    df['Time'] = pd.to_datetime(df['Time'], errors='coerce').dt.time
-    df['Time_Seconds'] = df['Time'].apply(lambda x: x.hour * 3600 + x.minute * 60 + x.second)
-    df['Time Range'] = pd.cut(df['Time_Seconds'], bins=[t[0] for t in time_intervals] + [75600], labels=time_labels)
-    
-    grouped = df.groupby(['Date', 'Service No.', 'Time Range']).agg(
-        Total_Connected=('Account No.', 'count'),
-        Total_PTP=('PTP Amount', lambda x: (x != 0).sum()),
-        Total_RPC=('Status', lambda x: x.str.contains('RPC', na=False).sum()),
-        PTP_Amount=('PTP Amount', 'sum'),
-        Balance_Amount=('Balance', 'sum')
-    ).reset_index()
-    
-    return grouped
+    for (date, cycle), cycle_group in df[~df['Remark By'].str.upper().isin(['SYSTEM'])].groupby([df['Date'].dt.date, 'Service No.']):
+        total_connected = cycle_group[cycle_group['Call Status'] == 'CONNECTED']['Account No.'].count()
+        total_ptp = cycle_group[cycle_group['Status'].str.contains('PTP', na=False) & (cycle_group['PTP Amount'] != 0)]['Account No.'].nunique()
+        total_rpc = cycle_group[cycle_group['Status'].str.contains('RPC', na=False)]['Account No.'].count()
+        ptp_amount = cycle_group[cycle_group['Status'].str.contains('PTP', na=False) & (cycle_group['PTP Amount'] != 0)]['PTP Amount'].sum()
+        balance_amount = cycle_group[(cycle_group['Status'].str.contains('PTP', na=False)) & (cycle_group['PTP Amount'] != 0) & (cycle_group['Balance'] != 0)]['Balance'].sum()
 
-# ------------------- DISPLAY TIME AND CYCLE SUMMARY -------------------
-if df is not None:
-    time_cycle_summary = generate_time_cycle_summary(df)
-    
-    st.markdown('<div class="category-title">Hourly PTP Summary per Cycle</div>', unsafe_allow_html=True)
-    
-    for cycle in time_cycle_summary['Service No.'].unique():
-        st.markdown(f'<div class="category-title">Cycle: {cycle}</div>', unsafe_allow_html=True)
-        cycle_data = time_cycle_summary[time_cycle_summary['Service No.'] == cycle]
+        cycle_summary = pd.DataFrame([{
+            'Date': date,
+            'Cycle': cycle,
+            'Total Connected': total_connected,
+            'Total PTP': total_ptp,
+            'Total RPC': total_rpc,
+            'PTP Amount': ptp_amount,
+            'Balance Amount': balance_amount,
+        }])
         
-        # Compute totals
-        totals = pd.DataFrame({
-            'Date': ['Total'],
-            'Service No.': [cycle],
-            'Time Range': [''],
-            'Total_Connected': [cycle_data['Total_Connected'].sum()],
-            'Total_PTP': [cycle_data['Total_PTP'].sum()],
-            'Total_RPC': [cycle_data['Total_RPC'].sum()],
-            'PTP_Amount': [cycle_data['PTP_Amount'].sum()],
-            'Balance_Amount': [cycle_data['Balance_Amount'].sum()]
+        if date in cycle_summary_by_date:
+            cycle_summary_by_date[date] = pd.concat([cycle_summary_by_date[date], cycle_summary], ignore_index=True)
+        else:
+            cycle_summary_by_date[date] = cycle_summary
+    
+    for date, summary in cycle_summary_by_date.items():
+        totals = {
+            'Date': 'Total',
+            'Cycle': '',
+            'Total Connected': summary['Total Connected'].sum(),
+            'Total PTP': summary['Total PTP'].sum(),
+            'Total RPC': summary['Total RPC'].sum(),
+            'PTP Amount': summary['PTP Amount'].sum(),
+            'Balance Amount': summary['Balance Amount'].sum()
+        }
+        cycle_summary_by_date[date] = pd.concat([summary, pd.DataFrame([totals])], ignore_index=True)
+    
+    return cycle_summary_by_date
+
+def generate_hourly_summary(df):
+    df['Time'] = pd.to_datetime(df['Time'], format='%H:%M:%S').dt.time
+    time_intervals = [
+        ("06:00:00", "07:00:00"), ("07:01:00", "08:00:00"), ("08:01:00", "09:00:00"),
+        ("09:01:00", "10:00:00"), ("10:01:00", "11:00:00"), ("11:01:00", "12:00:00"),
+        ("12:01:00", "13:00:00"), ("13:01:00", "14:00:00"), ("14:01:00", "15:00:00"),
+        ("15:01:00", "16:00:00"), ("16:01:00", "17:00:00"), ("17:01:00", "18:00:00"),
+        ("18:01:00", "19:00:00"), ("19:01:00", "20:00:00"), ("20:01:00", "21:00:00")
+    ]
+    time_summary = []
+    
+    for start, end in time_intervals:
+        mask = (df['Time'] >= pd.to_datetime(start).time()) & (df['Time'] <= pd.to_datetime(end).time())
+        time_group = df[mask]
+        total_ptp = time_group[time_group['Status'].str.contains('PTP', na=False)]['Account No.'].nunique()
+        ptp_amount = time_group[time_group['Status'].str.contains('PTP', na=False)]['PTP Amount'].sum()
+        time_summary.append({
+            'Time Range': f"{start} - {end}",
+            'Total PTP': total_ptp,
+            'PTP Amount': ptp_amount
         })
-        
-        cycle_data = pd.concat([cycle_data, totals], ignore_index=True)
-        st.dataframe(cycle_data)
+    
+    return pd.DataFrame(time_summary)
+
+# ------------------- DISPLAY SUMMARIES -------------------
+if df is not None:
+    cycle_summary = generate_cycle_summary(df)
+    hourly_summary = generate_hourly_summary(df)
+    
+    st.markdown('<div class="category-title">Cycle Summary</div>', unsafe_allow_html=True)
+    for date, summary in cycle_summary.items():
+        st.markdown(f'<div class="category-title">Date: {date}</div>', unsafe_allow_html=True)
+        st.dataframe(summary)
+    
+    st.markdown('<div class="category-title">Hourly PTP Summary</div>', unsafe_allow_html=True)
+    st.dataframe(hourly_summary)
