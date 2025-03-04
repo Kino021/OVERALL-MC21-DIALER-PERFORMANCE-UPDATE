@@ -49,8 +49,6 @@ if uploaded_file is not None:
         df = pd.read_csv(uploaded_file)
     elif uploaded_file.name.endswith('.xlsx'):
         df = pd.read_excel(uploaded_file)
-    st.success("File uploaded successfully!")
-    st.write(df.head())  # Display first few rows for verification
 
 # ------------------- DATA PROCESSING FOR TIME AND CYCLE SUMMARY -------------------
 def generate_time_cycle_summary(df):
