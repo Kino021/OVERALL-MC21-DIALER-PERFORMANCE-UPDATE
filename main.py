@@ -57,17 +57,12 @@ if uploaded_file:
     df = load_data(uploaded_file)
 
     # ------------------- CLEAN COLUMN NAMES -------------------
-    # Strip leading/trailing spaces and convert to lowercase
     df.columns = df.columns.str.strip().str.lower()
 
     # ------------------- HOURLY PRODUCTIVITY REPORT -------------------
-    # Filter rows with status "PTP" but exclude "PTP FF UP"
     df_filtered = df[df['status'].str.contains('PTP', na=False) & ~df['status'].str.contains('PTP FF UP', na=False)]
-
-    # Ensure 'time' is in a datetime format if it's not already
     df_filtered['time'] = pd.to_datetime(df_filtered['time'], errors='coerce')
 
-    # Add 'Time Range' based on hour
     def get_time_range(hour):
         if 6 <= hour < 7:
             return '6:00 AM - 7:00 AM'
@@ -100,24 +95,33 @@ if uploaded_file:
         elif 20 <= hour < 21:
             return '8:01 PM - 9:00 PM'
         else:
-            return None  # Exclude any other times
+            return None  
 
-    # Apply the time range function to 'Time' column
     df_filtered['Time Range'] = df_filtered['time'].dt.hour.apply(lambda x: get_time_range(x))
-
-    # Drop rows where 'Time Range' is None (i.e., times outside the defined range)
     df_filtered = df_filtered[df_filtered['Time Range'].notna()]
 
-    # Group by time range and calculate total PTP count and PTP amount
     try:
         hourly_report = df_filtered.groupby('Time Range').agg(
             Total_PTP_Count=('status', 'size'),
             Total_PTP_Amount=('ptp amount', 'sum')
         ).reset_index()
 
-        # Display the Hourly Productivity Report
+        # ------------------- ADD TOTAL ROW -------------------
+        total_ptp_count = hourly_report['Total_PTP_Count'].sum()
+        total_ptp_amount = hourly_report['Total_PTP_Amount'].sum()
+
+        total_row = pd.DataFrame({
+            'Time Range': ['TOTAL'],
+            'Total_PTP_Count': [total_ptp_count],
+            'Total_PTP_Amount': [total_ptp_amount]
+        })
+
+        hourly_report = pd.concat([hourly_report, total_row], ignore_index=True)
+
+        # ------------------- DISPLAY REPORT -------------------
         st.markdown('<div class="category-title">Hourly Productivity Report</div>', unsafe_allow_html=True)
         st.dataframe(hourly_report)
+
     except KeyError as e:
         st.error(f"Error in grouping: {e}")
         st.write("Available columns:", df_filtered.columns)
