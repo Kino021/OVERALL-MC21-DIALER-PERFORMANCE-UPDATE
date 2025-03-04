@@ -91,4 +91,18 @@ if df is not None:
     for cycle in time_cycle_summary['Service No.'].unique():
         st.markdown(f'<div class="category-title">Cycle: {cycle}</div>', unsafe_allow_html=True)
         cycle_data = time_cycle_summary[time_cycle_summary['Service No.'] == cycle]
+        
+        # Compute totals
+        totals = pd.DataFrame({
+            'Date': ['Total'],
+            'Service No.': [cycle],
+            'Time Range': [''],
+            'Total_Connected': [cycle_data['Total_Connected'].sum()],
+            'Total_PTP': [cycle_data['Total_PTP'].sum()],
+            'Total_RPC': [cycle_data['Total_RPC'].sum()],
+            'PTP_Amount': [cycle_data['PTP_Amount'].sum()],
+            'Balance_Amount': [cycle_data['Balance_Amount'].sum()]
+        })
+        
+        cycle_data = pd.concat([cycle_data, totals], ignore_index=True)
         st.dataframe(cycle_data)
