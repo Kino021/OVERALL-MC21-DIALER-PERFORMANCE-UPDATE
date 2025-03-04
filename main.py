@@ -56,22 +56,27 @@ def generate_time_summary(df):
     ]
     
     time_intervals = [
-        ("06:00:00", "07:00:00"), ("07:01:00", "08:00:00"), ("08:01:00", "09:00:00"),
-        ("09:01:00", "10:00:00"), ("10:01:00", "11:00:00"), ("11:01:00", "12:00:00"),
-        ("12:01:00", "13:00:00"), ("13:01:00", "14:00:00"), ("14:01:00", "15:00:00"),
-        ("15:01:00", "16:00:00"), ("16:01:00", "17:00:00"), ("17:01:00", "18:00:00"),
-        ("18:01:00", "19:00:00"), ("19:01:00", "20:00:00"), ("20:01:00", "21:00:00")
+        ("06:00", "07:00"), ("07:01", "08:00"), ("08:01", "09:00"),
+        ("09:01", "10:00"), ("10:01", "11:00"), ("11:01", "12:00"),
+        ("12:01", "13:00"), ("13:01", "14:00"), ("14:01", "15:00"),
+        ("15:01", "16:00"), ("16:01", "17:00"), ("17:01", "18:00"),
+        ("18:01", "19:00"), ("19:01", "20:00"), ("20:01", "21:00")
     ]
     
     # Ensure 'Time' column is in datetime format
     df['Time'] = pd.to_datetime(df['Time'], format='%H:%M:%S').dt.time
     
-    for (date, time_range), time_group in df[~df['Remark By'].str.upper().isin(['SYSTEM'])].groupby([
-        df['Date'].dt.date,
-        pd.cut(pd.to_datetime(df['Time'], format='%H:%M:%S').dt.hour * 60 + pd.to_datetime(df['Time'], format='%H:%M:%S').dt.minute,
-               bins=[0] + [int(t.split(':')[0]) * 60 + int(t.split(':')[1].split('-')[0]) for t in time_intervals],
-               labels=time_bins)
-    ]):
+    # Convert 'Time' to minutes since midnight for binning
+    def time_to_minutes(time_str):
+        h, m = map(int, time_str.split(':'))
+        return h * 60 + m
+    
+    bins = [time_to_minutes(start) for start, _ in time_intervals] + [time_to_minutes("21:00")]
+    
+    df['Time in Minutes'] = df['Time'].apply(lambda t: t.hour * 60 + t.minute)
+    df['Time Range'] = pd.cut(df['Time in Minutes'], bins=bins, labels=time_bins, right=False)
+    
+    for (date, time_range), time_group in df[~df['Remark By'].str.upper().isin(['SYSTEM'])].groupby([df['Date'].dt.date, 'Time Range']):
         total_connected = time_group[time_group['Call Status'] == 'CONNECTED']['Account No.'].count()
         total_ptp = time_group[time_group['Status'].str.contains('PTP', na=False) & (time_group['PTP Amount'] != 0)]['Account No.'].nunique()
         total_rpc = time_group[time_group['Status'].str.contains('RPC', na=False)]['Account No.'].count()
