@@ -101,7 +101,19 @@ def generate_time_summary(df):
             time_summary_by_date[date] = pd.concat([time_summary_by_date[date], time_summary_entry], ignore_index=True)
         else:
             time_summary_by_date[date] = time_summary_entry
-
+    
+    for date, summary in time_summary_by_date.items():
+        totals = {
+            'Date': 'Total',
+            'Time Range': '',
+            'Total Connected': summary['Total Connected'].sum(),
+            'Total PTP': summary['Total PTP'].sum(),
+            'Total RPC': summary['Total RPC'].sum(),
+            'PTP Amount': summary['PTP Amount'].sum(),
+            'Balance Amount': summary['Balance Amount'].sum()
+        }
+        time_summary_by_date[date] = pd.concat([summary, pd.DataFrame([totals])], ignore_index=True)
+    
     return time_summary_by_date
 
 # ------------------- FILE UPLOAD -------------------
@@ -113,13 +125,10 @@ if uploaded_file is not None:
     elif uploaded_file.name.endswith(".xlsx"):
         df = pd.read_excel(uploaded_file)
     
-    # Ensure 'Date' column is in datetime format
     df['Date'] = pd.to_datetime(df['Date'])
     
-    # Generate the summary based on uploaded data
     time_summary_by_date = generate_time_summary(df)
     
-    # Display the Time Summary Table
     st.markdown('<div class="category-title">📅 Hourly PTP Summary</div>', unsafe_allow_html=True)
 
     for date, summary in time_summary_by_date.items():
