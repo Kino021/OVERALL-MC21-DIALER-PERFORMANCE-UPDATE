@@ -58,10 +58,8 @@ def generate_time_summary(df):
         'Date', 'Time Range', 'Total Connected', 'Total PTP', 'Total RPC', 'PTP Amount', 'Balance Amount'
     ])
     
-    # Exclude rows where Status is 'PTP FF UP'
     df = df[df['Status'] != 'PTP FF UP']
     
-    # Define time intervals
     time_intervals = [
         (21600, 25200), (25201, 28800), (28801, 32400), (32401, 36000), 
         (36001, 39600), (39601, 43200), (43201, 46800), (46801, 50400), 
@@ -76,59 +74,37 @@ def generate_time_summary(df):
         "06:01-07:00 PM", "07:01-08:00 PM", "08:01-09:00 PM"
     ]
     
-    # Ensure 'Time' column is in datetime format
     df['Time'] = pd.to_datetime(df['Time'], errors='coerce').dt.time
     df['Time_Seconds'] = df['Time'].apply(lambda x: x.hour * 3600 + x.minute * 60 + x.second)
     df['Time Range'] = pd.cut(df['Time_Seconds'], bins=[t[0] for t in time_intervals] + [75600], labels=time_labels)
     
-    # Group by Date and Time Range
-    time_summary_by_date = {}
+    return df.groupby(['Date', 'Time Range']).agg(
+        Total_Connected=('Account No.', 'count'),
+        Total_PTP=('PTP Amount', lambda x: (x != 0).sum()),
+        Total_RPC=('Status', lambda x: x.str.contains('RPC', na=False).sum()),
+        PTP_Amount=('PTP Amount', 'sum'),
+        Balance_Amount=('Balance', 'sum')
+    ).reset_index()
+
+# ------------------- DATA PROCESSING FOR CYCLE SUMMARY -------------------
+def generate_cycle_summary(df):
+    df = df[df['Status'] != 'PTP FF UP']
     
-    for (date, time_range), time_group in df[~df['Remark By'].str.upper().isin(['SYSTEM'])].groupby([df['Date'].dt.date, 'Time Range']):
-        total_connected = time_group[time_group['Call Status'] == 'CONNECTED']['Account No.'].count()
-        total_ptp = time_group[time_group['Status'].str.contains('PTP', na=False) & (time_group['PTP Amount'] != 0)]['Account No.'].nunique()
-        total_rpc = time_group[time_group['Status'].str.contains('RPC', na=False)]['Account No.'].count()
-        ptp_amount = time_group[time_group['Status'].str.contains('PTP', na=False) & (time_group['PTP Amount'] != 0)]['PTP Amount'].sum()
-        balance_amount = time_group[
-            (time_group['Status'].str.contains('PTP', na=False)) & 
-            (time_group['PTP Amount'] != 0) & 
-            (time_group['Balance'] != 0)
-        ]['Balance'].sum()
-        
-        summary_row = pd.DataFrame([{
-            'Date': date,
-            'Time Range': time_range,
-            'Total Connected': total_connected,
-            'Total PTP': total_ptp,
-            'Total RPC': total_rpc,
-            'PTP Amount': ptp_amount,
-            'Balance Amount': balance_amount,
-        }])
-        
-        if date in time_summary_by_date:
-            time_summary_by_date[date] = pd.concat([time_summary_by_date[date], summary_row], ignore_index=True)
-        else:
-            time_summary_by_date[date] = summary_row
-    
-    # Add totals row for each date
-    for date, summary in time_summary_by_date.items():
-        totals = {
-            'Date': 'Total',
-            'Time Range': '',
-            'Total Connected': summary['Total Connected'].sum(),
-            'Total PTP': summary['Total PTP'].sum(),
-            'Total RPC': summary['Total RPC'].sum(),
-            'PTP Amount': summary['PTP Amount'].sum(),
-            'Balance Amount': summary['Balance Amount'].sum()
-        }
-        time_summary_by_date[date] = pd.concat([summary, pd.DataFrame([totals])], ignore_index=True)
-    
-    return time_summary_by_date
+    return df.groupby(['Date', 'Service No.']).agg(
+        Total_Connected=('Account No.', 'count'),
+        Total_PTP=('PTP Amount', lambda x: (x != 0).sum()),
+        Total_RPC=('Status', lambda x: x.str.contains('RPC', na=False).sum()),
+        PTP_Amount=('PTP Amount', 'sum'),
+        Balance_Amount=('Balance', 'sum')
+    ).reset_index()
 
 # ------------------- DISPLAY TIME SUMMARY -------------------
 if df is not None:
-    time_summary_by_date = generate_time_summary(df)
+    time_summary = generate_time_summary(df)
+    cycle_summary = generate_cycle_summary(df)
     
-    for date, summary in time_summary_by_date.items():
-        st.markdown(f'<div class="category-title">Hourly PTP Summary for {date}</div>', unsafe_allow_html=True)
-        st.dataframe(summary)
+    st.markdown('<div class="category-title">Hourly PTP Summary</div>', unsafe_allow_html=True)
+    st.dataframe(time_summary)
+    
+    st.markdown('<div class="category-title">Cycle Summary</div>', unsafe_allow_html=True)
+    st.dataframe(cycle_summary)
