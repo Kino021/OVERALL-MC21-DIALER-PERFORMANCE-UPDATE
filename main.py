@@ -80,7 +80,7 @@ def generate_cycle_summary(df):
     for date, summary in cycle_summary_by_date.items():
         totals = {
             'Date': 'Total',
-            'Cycle': '',
+            'Cycle': 'ALL',
             'Total Connected': summary['Total Connected'].sum(),
             'Total PTP': summary['Total PTP'].sum(),
             'Total RPC': summary['Total RPC'].sum(),
