@@ -1,7 +1,12 @@
 import streamlit as st
 import pandas as pd
 
-# ------------------- FUNCTION TO GENERATE HOURLY SUMMARY -------------------
+# Streamlit page configuration
+st.set_page_config(page_title="Productivity Dashboard", layout="wide")
+
+# File upload widget
+uploaded_file = st.file_uploader("Upload a CSV or Excel file", type=["csv", "xlsx"])
+
 def generate_time_summary(df):
     time_summary_by_date = {}
 
@@ -25,14 +30,7 @@ def generate_time_summary(df):
     ]
 
     # Ensure 'Time' column is in datetime format
-    try:
-        df['Time'] = pd.to_datetime(df['Time'], errors='coerce').dt.time  # Coerce errors to avoid crashes
-    except Exception as e:
-        st.error(f"Error processing Time column: {e}")
-        return {}
-
-    # Drop rows where Time could not be converted
-    df = df.dropna(subset=['Time'])
+    df['Time'] = pd.to_datetime(df['Time'], format='%H:%M:%S').dt.time
 
     # Convert 'Time' to minutes since midnight for binning
     def time_to_minutes(time_str):
@@ -41,12 +39,8 @@ def generate_time_summary(df):
 
     bins = [time_to_minutes(start) for start, _ in time_intervals] + [time_to_minutes("21:00")]
 
-    # Assign time ranges
     df['Time in Minutes'] = df['Time'].apply(lambda t: t.hour * 60 + t.minute)
     df['Time Range'] = pd.cut(df['Time in Minutes'], bins=bins, labels=time_bins, right=False)
-
-    # Remove NaN time ranges
-    df = df.dropna(subset=['Time Range'])
 
     for (date, time_range), time_group in df[~df['Remark By'].str.upper().isin(['SYSTEM'])].groupby([df['Date'].dt.date, 'Time Range']):
         total_connected = time_group[time_group['Call Status'] == 'CONNECTED']['Account No.'].count()
@@ -68,13 +62,12 @@ def generate_time_summary(df):
             'PTP Amount': ptp_amount,
             'Balance Amount': balance_amount,
         }])
-        
+
         if date in time_summary_by_date:
             time_summary_by_date[date] = pd.concat([time_summary_by_date[date], time_summary_entry], ignore_index=True)
         else:
             time_summary_by_date[date] = time_summary_entry
 
-    # Add total row per date
     for date, summary in time_summary_by_date.items():
         totals = {
             'Date': 'Total',
@@ -89,19 +82,22 @@ def generate_time_summary(df):
 
     return time_summary_by_date
 
-# ------------------- MAIN APP LOGIC -------------------
+
 if uploaded_file is not None:
+    # Load CSV or Excel file
     if uploaded_file.name.endswith(".csv"):
         df = pd.read_csv(uploaded_file)
     elif uploaded_file.name.endswith(".xlsx"):
         df = pd.read_excel(uploaded_file)
-    
+
+    # Convert 'Date' column to datetime
     df['Date'] = pd.to_datetime(df['Date'])
-    
+
+    # Generate hourly productivity summary
     time_summary_by_date = generate_time_summary(df)
-    
-    # Display the title
-    st.markdown('<div class="category-title">📅 Hourly PTP Summary</div>', unsafe_allow_html=True)
+
+    # Display the summary
+    st.markdown('<h2 style="text-align:center;">📊 Hourly PTP Summary</h2>', unsafe_allow_html=True)
 
     for date, summary in time_summary_by_date.items():
         st.markdown(f"### {date}")
