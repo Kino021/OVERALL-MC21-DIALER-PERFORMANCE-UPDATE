@@ -40,32 +40,9 @@ st.markdown("""
 # ------------------- HEADER -------------------
 st.markdown('<div class="header">📊 PRODUCTIVITY DASHBOARD</div>', unsafe_allow_html=True)
 
-# ------------------- FILE UPLOAD -------------------
-uploaded_file = st.file_uploader("Upload CSV or Excel File", type=["csv", "xlsx"])
-
-if uploaded_file is not None:
-    if uploaded_file.name.endswith(".csv"):
-        df = pd.read_csv(uploaded_file)
-    elif uploaded_file.name.endswith(".xlsx"):
-        df = pd.read_excel(uploaded_file)
-    
-    # Ensure 'Date' column is in datetime format
-    df['Date'] = pd.to_datetime(df['Date'])
-    
-    # Generate the summary based on uploaded data
-    time_summary_by_date = generate_time_summary(df)
-    
-    # Display the Time Summary Table
-    st.markdown('<div class="category-title">📅 Hourly PTP Summary</div>', unsafe_allow_html=True)
-
-    for date, summary in time_summary_by_date.items():
-        st.markdown(f"### {date}")
-        st.dataframe(summary)
-
+# ------------------- FUNCTION TO GENERATE TIME SUMMARY -------------------
 def generate_time_summary(df):
-    time_summary = pd.DataFrame(columns=[
-        'Date', 'Time Range', 'Total Connected', 'Total PTP', 'Total RPC', 'PTP Amount', 'Balance Amount'
-    ])
+    time_summary_by_date = {}
     
     # Exclude rows where Status is 'PTP FF UP'
     df = df[df['Status'] != 'PTP FF UP']
@@ -88,8 +65,6 @@ def generate_time_summary(df):
     
     # Ensure 'Time' column is in datetime format
     df['Time'] = pd.to_datetime(df['Time'], format='%H:%M:%S').dt.time
-    
-    time_summary_by_date = {}
     
     for (date, time_range), time_group in df[~df['Remark By'].str.upper().isin(['SYSTEM'])].groupby([
         df['Date'].dt.date,
@@ -123,3 +98,25 @@ def generate_time_summary(df):
             time_summary_by_date[date] = time_summary_entry
 
     return time_summary_by_date
+
+# ------------------- FILE UPLOAD -------------------
+uploaded_file = st.file_uploader("Upload CSV or Excel File", type=["csv", "xlsx"])
+
+if uploaded_file is not None:
+    if uploaded_file.name.endswith(".csv"):
+        df = pd.read_csv(uploaded_file)
+    elif uploaded_file.name.endswith(".xlsx"):
+        df = pd.read_excel(uploaded_file)
+    
+    # Ensure 'Date' column is in datetime format
+    df['Date'] = pd.to_datetime(df['Date'])
+    
+    # Generate the summary based on uploaded data
+    time_summary_by_date = generate_time_summary(df)
+    
+    # Display the Time Summary Table
+    st.markdown('<div class="category-title">📅 Hourly PTP Summary</div>', unsafe_allow_html=True)
+
+    for date, summary in time_summary_by_date.items():
+        st.markdown(f"### {date}")
+        st.dataframe(summary)
