@@ -40,6 +40,24 @@ st.markdown("""
 # ------------------- HEADER -------------------
 st.markdown('<div class="header">📊 PRODUCTIVITY DASHBOARD</div>', unsafe_allow_html=True)
 
+# ------------------- FILE UPLOAD -------------------
+uploaded_file = st.file_uploader("Upload CSV File", type=["csv"])
+
+if uploaded_file is not None:
+    df = pd.read_csv(uploaded_file)
+    
+    # Ensure 'Date' column is in datetime format
+    df['Date'] = pd.to_datetime(df['Date'])
+    
+    # Generate the summary based on uploaded data
+    time_summary_by_date = generate_time_summary(df)
+    
+    # Display the Time Summary Table
+    st.markdown('<div class="category-title">📅 Hourly PTP Summary</div>', unsafe_allow_html=True)
+
+    for date, summary in time_summary_by_date.items():
+        st.markdown(f"### {date}")
+        st.dataframe(summary)
 
 def generate_time_summary(df):
     time_summary = pd.DataFrame(columns=[
@@ -100,18 +118,5 @@ def generate_time_summary(df):
             time_summary_by_date[date] = pd.concat([time_summary_by_date[date], time_summary_entry], ignore_index=True)
         else:
             time_summary_by_date[date] = time_summary_entry
-
-    # Add totals row for each date
-    for date, summary in time_summary_by_date.items():
-        totals = {
-            'Date': 'Total',
-            'Time Range': '',
-            'Total Connected': summary['Total Connected'].sum(),
-            'Total PTP': summary['Total PTP'].sum(),
-            'Total RPC': summary['Total RPC'].sum(),
-            'PTP Amount': summary['PTP Amount'].sum(),
-            'Balance Amount': summary['Balance Amount'].sum()
-        }
-        time_summary_by_date[date] = pd.concat([summary, pd.DataFrame([totals])], ignore_index=True)
 
     return time_summary_by_date
