@@ -52,12 +52,8 @@ if uploaded_file is not None:
     st.success("File uploaded successfully!")
     st.write(df.head())  # Display first few rows for verification
 
-# ------------------- DATA PROCESSING FOR TIME SUMMARY -------------------
-def generate_time_summary(df):
-    time_summary = pd.DataFrame(columns=[
-        'Date', 'Time Range', 'Total Connected', 'Total PTP', 'Total RPC', 'PTP Amount', 'Balance Amount'
-    ])
-    
+# ------------------- DATA PROCESSING FOR TIME AND CYCLE SUMMARY -------------------
+def generate_time_cycle_summary(df):
     df = df[df['Status'] != 'PTP FF UP']
     
     time_intervals = [
@@ -78,7 +74,7 @@ def generate_time_summary(df):
     df['Time_Seconds'] = df['Time'].apply(lambda x: x.hour * 3600 + x.minute * 60 + x.second)
     df['Time Range'] = pd.cut(df['Time_Seconds'], bins=[t[0] for t in time_intervals] + [75600], labels=time_labels)
     
-    return df.groupby(['Date', 'Time Range']).agg(
+    return df.groupby(['Date', 'Service No.', 'Time Range']).agg(
         Total_Connected=('Account No.', 'count'),
         Total_PTP=('PTP Amount', lambda x: (x != 0).sum()),
         Total_RPC=('Status', lambda x: x.str.contains('RPC', na=False).sum()),
@@ -86,25 +82,9 @@ def generate_time_summary(df):
         Balance_Amount=('Balance', 'sum')
     ).reset_index()
 
-# ------------------- DATA PROCESSING FOR CYCLE SUMMARY -------------------
-def generate_cycle_summary(df):
-    df = df[df['Status'] != 'PTP FF UP']
-    
-    return df.groupby(['Date', 'Service No.']).agg(
-        Total_Connected=('Account No.', 'count'),
-        Total_PTP=('PTP Amount', lambda x: (x != 0).sum()),
-        Total_RPC=('Status', lambda x: x.str.contains('RPC', na=False).sum()),
-        PTP_Amount=('PTP Amount', 'sum'),
-        Balance_Amount=('Balance', 'sum')
-    ).reset_index()
-
-# ------------------- DISPLAY TIME SUMMARY -------------------
+# ------------------- DISPLAY TIME AND CYCLE SUMMARY -------------------
 if df is not None:
-    time_summary = generate_time_summary(df)
-    cycle_summary = generate_cycle_summary(df)
+    time_cycle_summary = generate_time_cycle_summary(df)
     
-    st.markdown('<div class="category-title">Hourly PTP Summary</div>', unsafe_allow_html=True)
-    st.dataframe(time_summary)
-    
-    st.markdown('<div class="category-title">Cycle Summary</div>', unsafe_allow_html=True)
-    st.dataframe(cycle_summary)
+    st.markdown('<div class="category-title">Hourly PTP Summary per Cycle</div>', unsafe_allow_html=True)
+    st.dataframe(time_cycle_summary)
