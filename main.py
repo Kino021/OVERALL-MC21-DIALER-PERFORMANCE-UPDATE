@@ -74,17 +74,23 @@ def generate_time_cycle_summary(df):
     df['Time_Seconds'] = df['Time'].apply(lambda x: x.hour * 3600 + x.minute * 60 + x.second)
     df['Time Range'] = pd.cut(df['Time_Seconds'], bins=[t[0] for t in time_intervals] + [75600], labels=time_labels)
     
-    return df.groupby(['Date', 'Service No.', 'Time Range']).agg(
+    grouped = df.groupby(['Date', 'Service No.', 'Time Range']).agg(
         Total_Connected=('Account No.', 'count'),
         Total_PTP=('PTP Amount', lambda x: (x != 0).sum()),
         Total_RPC=('Status', lambda x: x.str.contains('RPC', na=False).sum()),
         PTP_Amount=('PTP Amount', 'sum'),
         Balance_Amount=('Balance', 'sum')
     ).reset_index()
+    
+    return grouped
 
 # ------------------- DISPLAY TIME AND CYCLE SUMMARY -------------------
 if df is not None:
     time_cycle_summary = generate_time_cycle_summary(df)
     
     st.markdown('<div class="category-title">Hourly PTP Summary per Cycle</div>', unsafe_allow_html=True)
-    st.dataframe(time_cycle_summary)
+    
+    for cycle in time_cycle_summary['Service No.'].unique():
+        st.markdown(f'<div class="category-title">Cycle: {cycle}</div>', unsafe_allow_html=True)
+        cycle_data = time_cycle_summary[time_cycle_summary['Service No.'] == cycle]
+        st.dataframe(cycle_data)
