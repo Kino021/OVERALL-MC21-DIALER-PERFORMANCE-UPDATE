@@ -69,8 +69,8 @@ def generate_time_summary(df):
 
             df_filtered = daily_group[time_mask]
 
-            total_connected = df_filtered[df_filtered['Call Status'] == 'CONNECTED']['Account No.'].nunique()
-            total_ptp = df_filtered[df_filtered['Status'].str.contains('PTP', na=False) & (df_filtered['PTP Amount'] > 0)]['Account No.'].nunique()
+            total_connected = df_filtered[df_filtered['Call Status'] == 'CONNECTED']['Account No.'].count()
+            total_ptp = df_filtered[df_filtered['Status'].str.contains('PTP', na=False) & (df_filtered['PTP Amount'] > 0)]['Account No.'].count()
             total_rpc = df_filtered[df_filtered['Status'].str.contains('RPC', na=False)]['Account No.'].count()
             ptp_amount = df_filtered[df_filtered['PTP Amount'] > 0]['PTP Amount'].sum()
             balance_amount = df_filtered[(df_filtered['Balance'] > 0) & (df_filtered['PTP Amount'] > 0)]['Balance'].sum()
