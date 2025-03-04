@@ -45,88 +45,75 @@ st.markdown('<div class="header">📊 PRODUCTIVITY DASHBOARD</div>', unsafe_allo
 def load_data(uploaded_file):
     df = pd.read_excel(uploaded_file)
     df['Date'] = pd.to_datetime(df['Date'])
-    df = df[~df['Remark By'].isin(['FGPANGANIBAN', 'KPILUSTRISIMO', 'BLRUIZ', 'MMMEJIA', 'SAHERNANDEZ', 'GPRAMOS',
-                                   'JGCELIZ', 'JRELEMINO', 'HVDIGNOS', 'RALOPE', 'DRTORRALBA', 'RRCARLIT', 'MEBEJER',
-                                   'DASANTOS', 'SEMIJARES', 'GMCARIAN', 'RRRECTO', 'JMBORROMEO', 'EUGALERA', 'JATERRADO', 
-                                   'LMLABRADOR', 'EASORIANO'])]  # Exclude specific users
+    df['Time'] = pd.to_datetime(df['Time'], format='%H:%M:%S').dt.time  # Convert Time column to time format
+    df = df[~df['Remark By'].str.upper().isin(['SYSTEM'])]  # Exclude SYSTEM remarks
     return df
 
-# ------------------- LOAD DATA -------------------
-uploaded_file = st.file_uploader("Upload Data", type=["xlsx", "csv"])
+# File uploader
+uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
 if uploaded_file:
     df = load_data(uploaded_file)
 
-    # ------------------- CLEAN COLUMN NAMES -------------------
-    df.columns = df.columns.str.strip().str.lower()
+    # ------------------- HOURLY REPORT -------------------
+    time_bins = [
+        "06:00-07:00 AM", "07:01-08:00 AM", "08:01-09:00 AM", "09:01-10:00 AM",
+        "10:01-11:00 AM", "11:01-12:00 PM", "12:01-01:00 PM", "01:01-02:00 PM",
+        "02:01-03:00 PM", "03:01-04:00 PM", "04:01-05:00 PM", "05:01-06:00 PM",
+        "06:01-07:00 PM", "07:01-08:00 PM", "08:01-09:00 PM"
+    ]
 
-    # ------------------- HOURLY PRODUCTIVITY REPORT -------------------
-    df_filtered = df[df['status'].str.contains('PTP', na=False) & ~df['status'].str.contains('PTP FF UP', na=False)]
-    df_filtered['time'] = pd.to_datetime(df_filtered['time'], errors='coerce')
-    df_filtered['ptp amount'] = pd.to_numeric(df_filtered['ptp amount'], errors='coerce').fillna(0)
+    time_intervals = [
+        ("06:00:00", "07:00:00"), ("07:01:00", "08:00:00"), ("08:01:00", "09:00:00"),
+        ("09:01:00", "10:00:00"), ("10:01:00", "11:00:00"), ("11:01:00", "12:00:00"),
+        ("12:01:00", "13:00:00"), ("13:01:00", "14:00:00"), ("14:01:00", "15:00:00"),
+        ("15:01:00", "16:00:00"), ("16:01:00", "17:00:00"), ("17:01:00", "18:00:00"),
+        ("18:01:00", "19:00:00"), ("19:01:00", "20:00:00"), ("20:01:00", "21:00:00")
+    ]
 
-    # Function to categorize time ranges
-    def get_time_range(hour):
-        if 6 <= hour < 7:
-            return '6:00 AM - 7:00 AM'
-        elif 7 <= hour < 8:
-            return '7:01 AM - 8:00 AM'
-        elif 8 <= hour < 9:
-            return '8:01 AM - 9:00 AM'
-        elif 9 <= hour < 10:
-            return '9:01 AM - 10:00 AM'
-        elif 10 <= hour < 11:
-            return '10:01 AM - 11:00 AM'
-        elif 11 <= hour < 12:
-            return '11:01 AM - 12:00 PM'
-        elif 12 <= hour < 13:
-            return '12:01 PM - 1:00 PM'
-        elif 13 <= hour < 14:
-            return '1:01 PM - 2:00 PM'
-        elif 14 <= hour < 15:
-            return '2:01 PM - 3:00 PM'
-        elif 15 <= hour < 16:
-            return '3:01 PM - 4:00 PM'
-        elif 16 <= hour < 17:
-            return '4:01 PM - 5:00 PM'
-        elif 17 <= hour < 18:
-            return '5:01 PM - 6:00 PM'
-        elif 18 <= hour < 19:
-            return '6:01 PM - 7:00 PM'
-        elif 19 <= hour < 20:
-            return '7:01 PM - 8:00 PM'
-        elif 20 <= hour < 21:
-            return '8:01 PM - 9:00 PM'
-        else:
-            return None  
+    time_summary = pd.DataFrame(columns=['Time Range', 'Total Connected', 'Total PTP', 'Total RPC', 'PTP Amount', 'Balance Amount'])
 
-    df_filtered['Time Range'] = df_filtered['time'].dt.hour.apply(lambda x: get_time_range(x))
-    df_filtered = df_filtered[df_filtered['Time Range'].notna()]
+    for i, (start, end) in enumerate(time_intervals):
+        time_mask = (df['Time'] >= pd.to_datetime(start, format='%H:%M:%S').time()) & \
+                    (df['Time'] <= pd.to_datetime(end, format='%H:%M:%S').time())
 
-    # Filter only rows where 'PTP AMOUNT' is greater than 0
-    df_valid_ptp = df_filtered[df_filtered['ptp amount'] > 0]
+        df_filtered = df[time_mask]
 
-    try:
-        hourly_report = df_valid_ptp.groupby('Time Range').agg(
-            Total_PTP_Count=('account no.', pd.Series.nunique),  # Count unique Account Numbers
-            Total_PTP_Amount=('ptp amount', 'sum')
-        ).reset_index()
+        # Total Connected: Unique 'Account No.' where 'Call Status' = CONNECTED
+        total_connected = df_filtered[df_filtered['Call Status'] == 'CONNECTED']['Account No.'].nunique()
+        
+        # Total PTP: Unique 'Account No.' where 'Status' contains 'PTP' & 'PTP Amount' > 0
+        total_ptp = df_filtered[df_filtered['Status'].str.contains('PTP', na=False) & (df_filtered['PTP Amount'] > 0)]['Account No.'].nunique()
+        
+        # Total RPC: Count where 'Status' contains 'RPC'
+        total_rpc = df_filtered[df_filtered['Status'].str.contains('RPC', na=False)]['Account No.'].count()
+        
+        # PTP Amount: Sum where 'PTP Amount' > 0
+        ptp_amount = df_filtered[df_filtered['PTP Amount'] > 0]['PTP Amount'].sum()
+        
+        # Balance Amount: Sum where 'Balance' > 0 & 'PTP Amount' > 0
+        balance_amount = df_filtered[(df_filtered['Balance'] > 0) & (df_filtered['PTP Amount'] > 0)]['Balance'].sum()
 
-        # ------------------- ADD TOTAL ROW -------------------
-        total_ptp_count = hourly_report['Total_PTP_Count'].sum()
-        total_ptp_amount = hourly_report['Total_PTP_Amount'].sum()
+        time_summary = pd.concat([time_summary, pd.DataFrame([{
+            'Time Range': time_bins[i],
+            'Total Connected': total_connected,
+            'Total PTP': total_ptp,
+            'Total RPC': total_rpc,
+            'PTP Amount': ptp_amount,
+            'Balance Amount': balance_amount
+        }])], ignore_index=True)
 
-        total_row = pd.DataFrame({
-            'Time Range': ['TOTAL'],
-            'Total_PTP_Count': [total_ptp_count],
-            'Total_PTP_Amount': [total_ptp_amount]
-        })
+    # ------------------- ADD TOTAL ROW -------------------
+    totals = pd.DataFrame([{
+        'Time Range': 'Total',
+        'Total Connected': time_summary['Total Connected'].sum(),
+        'Total PTP': time_summary['Total PTP'].sum(),
+        'Total RPC': time_summary['Total RPC'].sum(),
+        'PTP Amount': time_summary['PTP Amount'].sum(),
+        'Balance Amount': time_summary['Balance Amount'].sum()
+    }])
 
-        hourly_report = pd.concat([hourly_report, total_row], ignore_index=True)
+    time_summary = pd.concat([time_summary, totals], ignore_index=True)
 
-        # ------------------- DISPLAY REPORT -------------------
-        st.markdown('<div class="category-title">Hourly Productivity Report</div>', unsafe_allow_html=True)
-        st.dataframe(hourly_report)
-
-    except KeyError as e:
-        st.error(f"Error in grouping: {e}")
-        st.write("Available columns:", df_filtered.columns)
+    # ------------------- DISPLAY TABLE -------------------
+    st.markdown('<div class="category-title">Hourly Productivity Summary</div>', unsafe_allow_html=True)
+    st.dataframe(time_summary)
