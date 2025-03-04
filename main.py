@@ -41,15 +41,9 @@ st.markdown("""
 st.markdown('<div class="header">📊 PRODUCTIVITY DASHBOARD</div>', unsafe_allow_html=True)
 
 # ------------------- FILE UPLOAD -------------------
-uploaded_file = st.file_uploader("Upload your data file", type=["xlsx"])
+uploaded_file = st.file_uploader("Upload your data file", type=["csv", "xlsx"])
 
-# ------------------- DATA LOADING FUNCTION -------------------
-# Streamlit page configuration
-st.set_page_config(page_title="Productivity Dashboard", layout="wide")
-
-# File upload widget
-uploaded_file = st.file_uploader("Upload a CSV or Excel file", type=["csv", "xlsx"])
-
+# ------------------- DATA PROCESSING FUNCTION -------------------
 def generate_time_summary(df):
     time_summary_by_date = {}
 
@@ -72,20 +66,28 @@ def generate_time_summary(df):
         ("18:01", "19:00"), ("19:01", "20:00"), ("20:01", "21:00")
     ]
 
-    # Ensure 'Time' column is in datetime format
-    df['Time'] = pd.to_datetime(df['Time'], format='%H:%M:%S').dt.time
+    # Ensure 'Time' column is properly parsed
+    df['Time'] = pd.to_datetime(df['Time'], format='%H:%M:%S', errors='coerce').dt.time
+
+    # Drop rows where 'Time' could not be parsed
+    df = df.dropna(subset=['Time'])
 
     # Convert 'Time' to minutes since midnight for binning
-    def time_to_minutes(time_str):
-        h, m = map(int, time_str.split(':'))
-        return h * 60 + m
+    def time_to_minutes(time_obj):
+        return time_obj.hour * 60 + time_obj.minute
 
-    bins = [time_to_minutes(start) for start, _ in time_intervals] + [time_to_minutes("21:00")]
+    bins = [time_to_minutes(pd.to_datetime(start, format='%H:%M').time()) for start, _ in time_intervals] + [1260]
 
-    df['Time in Minutes'] = df['Time'].apply(lambda t: t.hour * 60 + t.minute)
+    df['Time in Minutes'] = df['Time'].apply(time_to_minutes)
     df['Time Range'] = pd.cut(df['Time in Minutes'], bins=bins, labels=time_bins, right=False)
 
-    for (date, time_range), time_group in df[~df['Remark By'].str.upper().isin(['SYSTEM'])].groupby([df['Date'].dt.date, 'Time Range']):
+    # Ensure 'Date' column is in datetime format
+    df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
+
+    # Group and process the data
+    for (date, time_range), time_group in df[
+        ~df['Remark By'].astype(str).str.upper().isin(['SYSTEM'])
+    ].groupby([df['Date'].dt.date, 'Time Range']):
         total_connected = time_group[time_group['Call Status'] == 'CONNECTED']['Account No.'].count()
         total_ptp = time_group[time_group['Status'].str.contains('PTP', na=False) & (time_group['PTP Amount'] != 0)]['Account No.'].nunique()
         total_rpc = time_group[time_group['Status'].str.contains('RPC', na=False)]['Account No.'].count()
@@ -111,6 +113,7 @@ def generate_time_summary(df):
         else:
             time_summary_by_date[date] = time_summary_entry
 
+    # Add totals row for each date
     for date, summary in time_summary_by_date.items():
         totals = {
             'Date': 'Total',
@@ -126,22 +129,27 @@ def generate_time_summary(df):
     return time_summary_by_date
 
 
+# ------------------- PROCESS UPLOADED FILE -------------------
 if uploaded_file is not None:
-    # Load CSV or Excel file
-    if uploaded_file.name.endswith(".csv"):
-        df = pd.read_csv(uploaded_file)
-    elif uploaded_file.name.endswith(".xlsx"):
-        df = pd.read_excel(uploaded_file)
+    try:
+        # Load CSV or Excel file
+        if uploaded_file.name.endswith(".csv"):
+            df = pd.read_csv(uploaded_file)
+        else:
+            df = pd.read_excel(uploaded_file)
 
-    # Convert 'Date' column to datetime
-    df['Date'] = pd.to_datetime(df['Date'])
+        # Convert 'Date' column to datetime
+        df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
 
-    # Generate hourly productivity summary
-    time_summary_by_date = generate_time_summary(df)
+        # Generate hourly productivity summary
+        time_summary_by_date = generate_time_summary(df)
 
-    # Display the summary
-    st.markdown('<h2 style="text-align:center;">📊 Hourly PTP Summary</h2>', unsafe_allow_html=True)
+        # Display the summary
+        st.markdown('<h2 style="text-align:center;">📊 Hourly PTP Summary</h2>', unsafe_allow_html=True)
 
-    for date, summary in time_summary_by_date.items():
-        st.markdown(f"### {date}")
-        st.dataframe(summary)
+        for date, summary in time_summary_by_date.items():
+            st.markdown(f"### {date}")
+            st.dataframe(summary)
+
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
