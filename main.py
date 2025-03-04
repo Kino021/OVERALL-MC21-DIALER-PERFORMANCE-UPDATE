@@ -107,7 +107,7 @@ if uploaded_file:
 
     try:
         hourly_report = df_valid_ptp.groupby('Time Range').agg(
-            Total_PTP_Count=('status', 'size'),  # Count only rows where PTP Amount > 0
+            Total_PTP_Count=('account no.', pd.Series.nunique),  # Count unique Account Numbers
             Total_PTP_Amount=('ptp amount', 'sum')
         ).reset_index()
 
