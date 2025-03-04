@@ -1,72 +1,25 @@
-import streamlit as st
-import pandas as pd
-
-# ------------------- PAGE CONFIGURATION -------------------
-st.set_page_config(
-    layout="wide", 
-    page_title="Productivity Dashboard", 
-    page_icon="📊", 
-    initial_sidebar_state="expanded"
-)
-
-# ------------------- LOAD DATA -------------------
-@st.cache_data
-def load_data(uploaded_file):
-    df = pd.read_excel(uploaded_file)
-    df['Date'] = pd.to_datetime(df['Date'])
-    df['Time'] = pd.to_datetime(df['Time']).dt.time  # Convert to time format
-    return df
-
-# ------------------- TIME RANGE FUNCTION -------------------
+# Function to categorize time into specific time ranges
 def get_time_range(hour, minute):
-    if hour < 6:
-        return "Before 6AM"
-    elif hour >= 21:
-        return "After 9PM"
-    else:
-        return f"{hour:02d}:{minute:02d}-{hour + 1:02d}:{minute:02d}"
+    time_ranges = [
+        (6, 0, "06:00AM-07:00AM"), (7, 1, "07:01AM-08:00AM"), (8, 1, "08:01AM-09:00AM"),
+        (9, 1, "09:01AM-10:00AM"), (10, 1, "10:01AM-11:00AM"), (11, 1, "11:01AM-12:00PM"),
+        (12, 1, "12:01PM-01:00PM"), (13, 1, "01:01PM-02:00PM"), (14, 1, "02:01PM-03:00PM"),
+        (15, 1, "03:01PM-04:00PM"), (16, 1, "04:01PM-05:00PM"), (17, 1, "05:01PM-06:00PM"),
+        (18, 1, "06:01PM-07:00PM"), (19, 1, "07:01PM-08:00PM"), (20, 1, "08:01PM-09:00PM"),
+    ]
 
-# ------------------- GENERATE TIME-BASED SUMMARY -------------------
-def generate_time_summary(df):
-    time_summary = pd.DataFrame(columns=['Date', 'Time Range', 'Total Connected', 'Total PTP', 'Total RPC', 'PTP Amount', 'Balance Amount'])
-    
-    df = df[~df['Remark By'].str.upper().isin(['SYSTEM'])]  # Exclude system remarks
-    df['Time Range'] = df['Time'].apply(lambda x: get_time_range(x.hour, x.minute))
-    
-    for (date, time_range, collector), group in df.groupby([df['Date'].dt.date, 'Time Range', 'Remark By']):
-        total_connected = group[group['Call Status'] == 'CONNECTED']['Account No.'].nunique()
-        total_ptp = group[group['Status'].str.contains('PTP', na=False) & (group['PTP Amount'] > 0)]['Account No.'].nunique()
-        total_rpc = group[group['Status'].str.contains('RPC', na=False)]['Account No.'].count()
-        ptp_amount = group[group['Status'].str.contains('PTP', na=False) & (group['PTP Amount'] > 0)]['PTP Amount'].sum()
-        balance_amount = group[(group['Status'].str.contains('PTP', na=False)) & (group['PTP Amount'] > 0) & (group['Balance'] != 0)]['Balance'].sum()
-        
-        time_summary = pd.concat([time_summary, pd.DataFrame([{
-            'Date': date,
-            'Time Range': time_range,
-            'Total Connected': total_connected,
-            'Total PTP': total_ptp,
-            'Total RPC': total_rpc,
-            'PTP Amount': ptp_amount,
-            'Balance Amount': balance_amount,
-        }])], ignore_index=True)
-    
-    # Add totals row
-    totals = {
-        'Date': 'Total',
-        'Time Range': '',
-        'Total Connected': time_summary['Total Connected'].sum(),
-        'Total PTP': time_summary['Total PTP'].sum(),
-        'Total RPC': time_summary['Total RPC'].sum(),
-        'PTP Amount': time_summary['PTP Amount'].sum(),
-        'Balance Amount': time_summary['Balance Amount'].sum()
-    }
-    time_summary = pd.concat([time_summary, pd.DataFrame([totals])], ignore_index=True)
-    return time_summary
+    for start_hour, start_minute, label in time_ranges:
+        if hour == start_hour and minute >= start_minute:
+            return label
+    return "Outside Range"
 
-# ------------------- FILE UPLOAD & DISPLAY -------------------
-uploaded_file = st.file_uploader("Upload your data file", type=["xlsx"])
-if uploaded_file is not None:
-    df = load_data(uploaded_file)
-    st.markdown('<div class="category-title">📉 PRODUCTIVITY BY TIME RANGE</div>', unsafe_allow_html=True)
-    time_summary = generate_time_summary(df)
-    st.write(time_summary)
+# Ensure 'Time' column is in datetime format
+df['Time'] = pd.to_datetime(df['Time'], errors='coerce')  # Convert & handle errors
+
+# Drop rows where 'Time' couldn't be converted
+df = df.dropna(subset=['Time'])
+
+# Apply the time range function
+df['Time Range'] = df['Time'].apply(lambda x: get_time_range(x.hour, x.minute))
+
+# Now you can use 'Time Range' in groupby or other calculations
