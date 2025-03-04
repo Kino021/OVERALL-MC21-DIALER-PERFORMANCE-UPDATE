@@ -40,7 +40,19 @@ st.markdown("""
 # ------------------- HEADER -------------------
 st.markdown('<div class="header">📊 PRODUCTIVITY DASHBOARD</div>', unsafe_allow_html=True)
 
+# ------------------- FILE UPLOAD -------------------
+uploaded_file = st.file_uploader("Upload your file", type=["csv", "xlsx"])
 
+df = None
+if uploaded_file is not None:
+    if uploaded_file.name.endswith('.csv'):
+        df = pd.read_csv(uploaded_file)
+    elif uploaded_file.name.endswith('.xlsx'):
+        df = pd.read_excel(uploaded_file)
+    st.success("File uploaded successfully!")
+    st.write(df.head())  # Display first few rows for verification
+
+# ------------------- DATA PROCESSING FOR TIME SUMMARY -------------------
 def generate_time_summary(df):
     time_summary = pd.DataFrame(columns=[
         'Date', 'Time Range', 'Total Connected', 'Total PTP', 'Total RPC', 'PTP Amount', 'Balance Amount'
@@ -51,11 +63,10 @@ def generate_time_summary(df):
     
     # Define time intervals
     time_intervals = [
-        ("06:00:00", "07:00:00"), ("07:01:00", "08:00:00"), ("08:01:00", "09:00:00"),
-        ("09:01:00", "10:00:00"), ("10:01:00", "11:00:00"), ("11:01:00", "12:00:00"),
-        ("12:01:00", "13:00:00"), ("13:01:00", "14:00:00"), ("14:01:00", "15:00:00"),
-        ("15:01:00", "16:00:00"), ("16:01:00", "17:00:00"), ("17:01:00", "18:00:00"),
-        ("18:01:00", "19:00:00"), ("19:01:00", "20:00:00"), ("20:01:00", "21:00:00")
+        (21600, 25200), (25201, 28800), (28801, 32400), (32401, 36000), 
+        (36001, 39600), (39601, 43200), (43201, 46800), (46801, 50400), 
+        (50401, 54000), (54001, 57600), (57601, 61200), (61201, 64800), 
+        (64801, 68400), (68401, 72000), (72001, 75600)
     ]
     
     time_labels = [
@@ -66,12 +77,14 @@ def generate_time_summary(df):
     ]
     
     # Ensure 'Time' column is in datetime format
-    df['Time'] = pd.to_datetime(df['Time'], format='%H:%M:%S').dt.time
+    df['Time'] = pd.to_datetime(df['Time'], errors='coerce').dt.time
+    df['Time_Seconds'] = df['Time'].apply(lambda x: x.hour * 3600 + x.minute * 60 + x.second)
+    df['Time Range'] = pd.cut(df['Time_Seconds'], bins=[t[0] for t in time_intervals] + [75600], labels=time_labels)
     
     # Group by Date and Time Range
     time_summary_by_date = {}
     
-    for (date, time_range), time_group in df[~df['Remark By'].str.upper().isin(['SYSTEM'])].groupby([df['Date'].dt.date, pd.cut(df['Time'].astype(str), bins=[t[0] for t in time_intervals] + ["21:00:00"], labels=time_labels)]):
+    for (date, time_range), time_group in df[~df['Remark By'].str.upper().isin(['SYSTEM'])].groupby([df['Date'].dt.date, 'Time Range']):
         total_connected = time_group[time_group['Call Status'] == 'CONNECTED']['Account No.'].count()
         total_ptp = time_group[time_group['Status'].str.contains('PTP', na=False) & (time_group['PTP Amount'] != 0)]['Account No.'].nunique()
         total_rpc = time_group[time_group['Status'].str.contains('RPC', na=False)]['Account No.'].count()
@@ -111,3 +124,11 @@ def generate_time_summary(df):
         time_summary_by_date[date] = pd.concat([summary, pd.DataFrame([totals])], ignore_index=True)
     
     return time_summary_by_date
+
+# ------------------- DISPLAY TIME SUMMARY -------------------
+if df is not None:
+    time_summary_by_date = generate_time_summary(df)
+    
+    for date, summary in time_summary_by_date.items():
+        st.markdown(f'<div class="category-title">Hourly PTP Summary for {date}</div>', unsafe_allow_html=True)
+        st.dataframe(summary)
