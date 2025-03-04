@@ -113,7 +113,11 @@ def generate_hourly_summary(df):
             'PTP Amount': ptp_amount
         })
     
-    return pd.DataFrame(time_summary)
+    time_summary_df = pd.DataFrame(time_summary)
+    totals = {'Time Range': 'Total', 'Total PTP': time_summary_df['Total PTP'].sum(), 'PTP Amount': time_summary_df['PTP Amount'].sum()}
+    time_summary_df = pd.concat([time_summary_df, pd.DataFrame([totals])], ignore_index=True)
+    
+    return time_summary_df
 
 # ------------------- DISPLAY SUMMARIES -------------------
 if df is not None:
