@@ -76,6 +76,19 @@ def generate_cycle_summary(df):
         Balance_Amount=('Balance', 'sum')
     ).reset_index()
 
+# ------------------- FUNCTION TO GENERATE TIME SUMMARY -------------------
+def generate_time_summary(df):
+    """Creates a summary of productivity by time (hour)."""
+    df['Hour'] = pd.to_datetime(df['Date']).dt.hour  # Assuming 'Date' contains the timestamp
+    time_summary = df.groupby(['Date', 'Hour']).agg(
+        Total_Connected=('Call Status', lambda x: (x == 'CONNECTED').sum()),
+        Total_PTP=('Status', lambda x: (x.str.contains('PTP', na=False)).sum()),
+        Total_RPC=('Status', lambda x: (x.str.contains('RPC', na=False)).sum()),
+        PTP_Amount=('PTP Amount', 'sum'),
+        Balance_Amount=('Balance', 'sum')
+    ).reset_index()
+    return time_summary
+
 # ------------------- MAIN APP LOGIC -------------------
 if uploaded_file is not None:
     df = load_data(uploaded_file)
@@ -83,11 +96,8 @@ if uploaded_file is not None:
     if df is not None:
         # Display Hourly Summary
         st.markdown('<h2 style="text-align:center;">📊 Hourly PTP Summary</h2>', unsafe_allow_html=True)
-        # Assuming generate_time_summary is another function, you need to implement it
         time_summary_by_date = generate_time_summary(df)
-        for date, summary in time_summary_by_date.items():
-            st.markdown(f"### {date}")
-            st.dataframe(pd.DataFrame(summary))
+        st.dataframe(time_summary_by_date)
 
         # Display Collector Summary
         st.markdown('<div class="category-title">📋 PRODUCTIVITY BY COLLECTOR</div>', unsafe_allow_html=True)
