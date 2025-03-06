@@ -40,18 +40,25 @@ if uploaded_file is not None:
     # Load and filter the data
     df = load_data(uploaded_file)
 
-    # Filter rows where 'STATUS' contains "PTP" but not "PTP FF" or "PTP FOLLOW UP"
-    filtered_df = df[df['STATUS'].str.contains('PTP', na=False)]
-    filtered_df = filtered_df[~filtered_df['STATUS'].str.contains('PTP FF|PTP FOLLOW UP', na=False)]
+    # Check columns to verify 'STATUS' exists
+    st.write("Columns in DataFrame:", df.columns)
 
-    # Exclude rows where 'REMARKS BY' is 'SYSTEM'
-    filtered_df = filtered_df[~filtered_df['Remark By'].str.contains('SYSTEM', na=False)]
+    # Check if 'STATUS' column exists before proceeding
+    if 'STATUS' in df.columns and 'Remark By' in df.columns:
+        # Filter rows where 'STATUS' contains "PTP" but not "PTP FF" or "PTP FOLLOW UP"
+        filtered_df = df[df['STATUS'].str.contains('PTP', na=False)]
+        filtered_df = filtered_df[~filtered_df['STATUS'].str.contains('PTP FF|PTP FOLLOW UP', na=False)]
 
-    # Count the total PTP entries
-    total_ptp_count = filtered_df.shape[0]
-    
-    # Display the count
-    st.write(f"Total PTP Count: {total_ptp_count}")
+        # Exclude rows where 'REMARKS BY' is 'SYSTEM'
+        filtered_df = filtered_df[~filtered_df['Remark By'].str.contains('SYSTEM', na=False)]
 
-    # Display the filtered dataframe (optional)
-    st.write(filtered_df)
+        # Count the total PTP entries
+        total_ptp_count = filtered_df.shape[0]
+        
+        # Display the count
+        st.write(f"Total PTP Count: {total_ptp_count}")
+
+        # Display the filtered dataframe (optional)
+        st.write(filtered_df)
+    else:
+        st.error("The 'STATUS' or 'Remark By' column does not exist in the uploaded file.")
