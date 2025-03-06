@@ -57,7 +57,7 @@ def load_data(file):
 # ------------------- FUNCTION TO GENERATE COLLECTOR SUMMARY -------------------
 def generate_collector_summary(df):
     """Creates a summary of productivity by collector."""
-    return df.groupby(['Date', 'Remark By']).agg(
+    collector_summary = df.groupby(['Date', 'Remark By']).agg(
         Total_Connected=('Call Status', lambda x: (x == 'CONNECTED').sum()),
         Total_PTP=('Status', lambda x: (x.str.contains('PTP', na=False)).sum()),
         Total_RPC=('Status', lambda x: (x.str.contains('RPC', na=False)).sum()),
@@ -65,16 +65,26 @@ def generate_collector_summary(df):
         Balance_Amount=('Balance', 'sum')
     ).reset_index()
 
+    # Remove total rows (if any row contains NaN in Date or Remark By)
+    collector_summary = collector_summary.dropna(subset=['Date', 'Remark By'])
+
+    return collector_summary
+
 # ------------------- FUNCTION TO GENERATE CYCLE SUMMARY -------------------
 def generate_cycle_summary(df):
     """Creates a summary of productivity by cycle."""
-    return df.groupby(['Date', 'Service No.']).agg(
+    cycle_summary = df.groupby(['Date', 'Service No.']).agg(
         Total_Connected=('Call Status', lambda x: (x == 'CONNECTED').sum()),
         Total_PTP=('Status', lambda x: (x.str.contains('PTP', na=False)).sum()),
         Total_RPC=('Status', lambda x: (x.str.contains('RPC', na=False)).sum()),
         PTP_Amount=('PTP Amount', 'sum'),
         Balance_Amount=('Balance', 'sum')
     ).reset_index()
+
+    # Remove total rows (if any row contains NaN in Date or Service No.)
+    cycle_summary = cycle_summary.dropna(subset=['Date', 'Service No.'])
+
+    return cycle_summary
 
 # ------------------- FUNCTION TO GENERATE TIME SUMMARY -------------------
 def generate_time_summary(df):
@@ -87,6 +97,10 @@ def generate_time_summary(df):
         PTP_Amount=('PTP Amount', 'sum'),
         Balance_Amount=('Balance', 'sum')
     ).reset_index()
+    
+    # Remove total rows (if any row contains NaN in Date or Hour)
+    time_summary = time_summary.dropna(subset=['Date', 'Hour'])
+    
     return time_summary
 
 # ------------------- MAIN APP LOGIC -------------------
