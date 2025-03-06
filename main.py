@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 
+# Set up the page configuration
 st.set_page_config(layout="wide", page_title="Daily Remark Summary", page_icon="📊", initial_sidebar_state="expanded")
 
 # Apply dark mode
@@ -21,47 +22,36 @@ st.markdown(
 
 st.title('Daily Remark Summary')
 
+# Cache the data to improve performance
 @st.cache_data
 def load_data(uploaded_file):
     df = pd.read_excel(uploaded_file)
-
-    # Exclude specified agents
-    df = df[~df['Remark By'].isin(['FGPANGANIBAN', 'KPILUSTRISIMO', 'BLRUIZ', 'MMMEJIA', 'SAHERNANDEZ', 'GPRAMOS',
-                                   'JGCELIZ', 'JRELEMINO', 'HVDIGNOS', 'RALOPE', 'DRTORRALBA', 'RRCARLIT', 'MEBEJER',
-                                   'DASANTOS', 'SEMIJARES', 'GMCARIAN', 'RRRECTO', 'JMBORROMEO', 'EUGALERA', 'JATERRADO'])]
-    
-    # Filter rows where 'STATUS' contains 'PTP' but excludes 'PTP FF' and 'PTP FOLLOW UP'
-    df = df[df['STATUS'].str.contains('PTP') & ~df['STATUS'].str.contains('PTP FF|PTP FOLLOW UP')]
-
-    # Filter rows where 'REMARKS BY' contains an agent username and excludes 'SYSTEM'
-    df = df[df['REMARKS BY'].str.contains(r'\b(?!SYSTEM\b)\w+', na=False)]
+    # Filter out the agents that are to be excluded
+    df = df[~df['Remark By'].isin(['FGPANGANIBAN', 'KPILUSTRISIMO', 'BLRUIZ', 'MMMEJIA', 'SAHERNANDEZ', 'GPRAMOS'
+                                   , 'JGCELIZ', 'JRELEMINO', 'HVDIGNOS', 'RALOPE', 'DRTORRALBA', 'RRCARLIT', 'MEBEJER'
+                                   , 'DASANTOS', 'SEMIJARES', 'GMCARIAN', 'RRRECTO', 'JMBORROMEO', 'EUGALERA','JATERRADO'])]
 
     return df
 
-# File uploader in sidebar
+# File uploader
 uploaded_file = st.sidebar.file_uploader("Upload Daily Remark File", type="xlsx")
 
 if uploaded_file is not None:
+    # Load and filter the data
     df = load_data(uploaded_file)
-    st.write(df)
 
-    # Allow user to download filtered data as CSV or Excel
-    st.sidebar.markdown("### Download Filtered Data")
+    # Filter rows where 'STATUS' contains "PTP" but not "PTP FF" or "PTP FOLLOW UP"
+    filtered_df = df[df['STATUS'].str.contains('PTP', na=False)]
+    filtered_df = filtered_df[~filtered_df['STATUS'].str.contains('PTP FF|PTP FOLLOW UP', na=False)]
+
+    # Exclude rows where 'REMARKS BY' is 'SYSTEM'
+    filtered_df = filtered_df[~filtered_df['Remark By'].str.contains('SYSTEM', na=False)]
+
+    # Count the total PTP entries
+    total_ptp_count = filtered_df.shape[0]
     
-    # Option to download as CSV
-    csv = df.to_csv(index=False)
-    st.sidebar.download_button(
-        label="Download as CSV",
-        data=csv,
-        file_name="filtered_data.csv",
-        mime="text/csv"
-    )
-    
-    # Option to download as Excel
-    excel = df.to_excel(index=False, engine='openpyxl')
-    st.sidebar.download_button(
-        label="Download as Excel",
-        data=excel,
-        file_name="filtered_data.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+    # Display the count
+    st.write(f"Total PTP Count: {total_ptp_count}")
+
+    # Display the filtered dataframe (optional)
+    st.write(filtered_df)
