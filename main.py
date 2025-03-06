@@ -59,7 +59,7 @@ def generate_collector_summary(df):
     """Creates a summary of productivity by collector, excluding certain remarks."""
     # Filter out the rows where 'Remark By' is in the excluded list
     excluded_remarks = ['Blruiz', 'system', 'SYSTEM']
-    df_filtered = df[~df['Remark By'].isin(excluded_remarks)]
+    df_filtered = df[~df['Remark By'].isin(excluded_remarks)]  # Exclude those remarks
     
     collector_summary = df_filtered.groupby(['Date', 'Remark By']).agg(
         Total_Connected=('Call Status', lambda x: (x == 'CONNECTED').sum()),
