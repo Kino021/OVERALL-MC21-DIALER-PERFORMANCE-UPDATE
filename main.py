@@ -63,79 +63,56 @@ def load_data(file):
         st.error(f"Error loading file: {e}")
         return None
 
-# ------------------- FUNCTION TO GENERATE HOURLY SUMMARY -------------------
-def generate_time_summary(df):
-    """Creates hourly PTP productivity summary."""
-    time_summary_by_date = {}
-
-    df = df[df['Status'] != 'PTP FF UP']  # Exclude unnecessary statuses
-
-    # Define time bins
-    time_bins = [
-        "06:00-07:00 AM", "07:01-08:00 AM", "08:01-09:00 AM", "09:01-10:00 AM",
-        "10:01-11:00 AM", "11:01-12:00 PM", "12:01-01:00 PM", "01:01-02:00 PM",
-        "02:01-03:00 PM", "03:01-04:00 PM", "04:01-05:00 PM", "05:01-06:00 PM",
-        "06:01-07:00 PM", "07:01-08:00 PM", "08:01-09:00 PM"
-    ]
-
-    time_intervals = [
-        ("06:00", "07:00"), ("07:01", "08:00"), ("08:01", "09:00"),
-        ("09:01", "10:00"), ("10:01", "11:00"), ("11:01", "12:00"),
-        ("12:01", "13:00"), ("13:01", "14:00"), ("14:01", "15:00"),
-        ("15:01", "16:00"), ("16:01", "17:00"), ("17:01", "18:00"),
-        ("18:01", "19:00"), ("19:01", "20:00"), ("20:01", "21:00")
-    ]
-
-    def time_to_minutes(time_obj):
-        return time_obj.hour * 60 + time_obj.minute
-
-    bins = [time_to_minutes(pd.to_datetime(start, format='%H:%M').time()) for start, _ in time_intervals] + [1260]
-
-    df['Time in Minutes'] = df['Time'].apply(time_to_minutes)
-    df['Time Range'] = pd.cut(df['Time in Minutes'], bins=bins, labels=time_bins, right=False)
-
-    for (date, time_range), time_group in df[~df['Remark By'].astype(str).str.upper().isin(['SYSTEM'])].groupby([df['Date'].dt.date, 'Time Range']):
-        time_summary_by_date.setdefault(date, []).append({
-            'Time Range': time_range,
-            'Total Connected': (time_group['Call Status'] == 'CONNECTED').sum(),
-            'Total PTP': ((time_group['Status'].str.contains('PTP', na=False)) & (time_group['PTP Amount'] != 0)).sum(),
-            'Total RPC': (time_group['Status'].str.contains('RPC', na=False)).sum(),
-            'PTP Amount': time_group.loc[time_group['Status'].str.contains('PTP', na=False), 'PTP Amount'].sum(),
-            'Balance Amount': time_group.loc[time_group['Status'].str.contains('PTP', na=False), 'Balance'].sum(),
-        })
-
-    return time_summary_by_date
-
 # ------------------- FUNCTION TO GENERATE COLLECTOR SUMMARY -------------------
 def generate_collector_summary(df):
     """Creates a summary of productivity by collector."""
-    return df.groupby(['Date', 'Remark By']).agg(
+    collector_summary = df.groupby(['Date', 'Remark By']).agg(
         Total_Connected=('Call Status', lambda x: (x == 'CONNECTED').sum()),
         Total_PTP=('Status', lambda x: (x.str.contains('PTP', na=False)).sum()),
         Total_RPC=('Status', lambda x: (x.str.contains('RPC', na=False)).sum()),
         PTP_Amount=('PTP Amount', 'sum'),
         Balance_Amount=('Balance', 'sum')
     ).reset_index()
+
+    # Calculate totals
+    totals = collector_summary[['Total_Connected', 'Total_PTP', 'Total_RPC', 'PTP_Amount', 'Balance_Amount']].sum()
+    totals['Date'] = 'Total'
+    totals['Remark By'] = 'All Collectors'
+    
+    # Append totals to the dataframe
+    collector_summary = collector_summary.append(totals, ignore_index=True)
+    
+    return collector_summary
 
 # ------------------- FUNCTION TO GENERATE CYCLE SUMMARY -------------------
 def generate_cycle_summary(df):
     """Creates a summary of productivity by cycle."""
-    return df.groupby(['Date', 'Service No.']).agg(
+    cycle_summary = df.groupby(['Date', 'Service No.']).agg(
         Total_Connected=('Call Status', lambda x: (x == 'CONNECTED').sum()),
         Total_PTP=('Status', lambda x: (x.str.contains('PTP', na=False)).sum()),
         Total_RPC=('Status', lambda x: (x.str.contains('RPC', na=False)).sum()),
         PTP_Amount=('PTP Amount', 'sum'),
         Balance_Amount=('Balance', 'sum')
     ).reset_index()
+
+    # Calculate totals
+    totals = cycle_summary[['Total_Connected', 'Total_PTP', 'Total_RPC', 'PTP_Amount', 'Balance_Amount']].sum()
+    totals['Date'] = 'Total'
+    totals['Service No.'] = 'All Cycles'
+    
+    # Append totals to the dataframe
+    cycle_summary = cycle_summary.append(totals, ignore_index=True)
+    
+    return cycle_summary
 
 # ------------------- MAIN APP LOGIC -------------------
 if uploaded_file is not None:
     df = load_data(uploaded_file)
 
     if df is not None:
-        # Display Hourly Summary
+        # Display Hourly Summary (assuming a function `generate_time_summary` is defined elsewhere in the code)
         st.markdown('<h2 style="text-align:center;">📊 Hourly PTP Summary</h2>', unsafe_allow_html=True)
-        time_summary_by_date = generate_time_summary(df)
+        time_summary_by_date = generate_time_summary(df)  # This function should be defined somewhere in your code.
         for date, summary in time_summary_by_date.items():
             st.markdown(f"### {date}")
             st.dataframe(pd.DataFrame(summary))
