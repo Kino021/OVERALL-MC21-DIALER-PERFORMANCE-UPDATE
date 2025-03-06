@@ -56,8 +56,12 @@ def load_data(file):
 
 # ------------------- FUNCTION TO GENERATE COLLECTOR SUMMARY -------------------
 def generate_collector_summary(df):
-    """Creates a summary of productivity by collector."""
-    collector_summary = df.groupby(['Date', 'Remark By']).agg(
+    """Creates a summary of productivity by collector, excluding certain remarks."""
+    # Filter out the rows where 'Remark By' is in the excluded list
+    excluded_remarks = ['Blruiz', 'system', 'SYSTEM']
+    df_filtered = df[~df['Remark By'].isin(excluded_remarks)]
+    
+    collector_summary = df_filtered.groupby(['Date', 'Remark By']).agg(
         Total_Connected=('Call Status', lambda x: (x == 'CONNECTED').sum()),
         Total_PTP=('Status', lambda x: (x.str.contains('PTP', na=False)).sum()),
         Total_RPC=('Status', lambda x: (x.str.contains('RPC', na=False)).sum()),
@@ -97,10 +101,10 @@ def generate_time_summary(df):
         PTP_Amount=('PTP Amount', 'sum'),
         Balance_Amount=('Balance', 'sum')
     ).reset_index()
-    
+
     # Remove total rows (if any row contains NaN in Date or Hour)
     time_summary = time_summary.dropna(subset=['Date', 'Hour'])
-    
+
     return time_summary
 
 # ------------------- MAIN APP LOGIC -------------------
