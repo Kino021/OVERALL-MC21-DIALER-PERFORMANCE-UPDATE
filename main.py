@@ -39,7 +39,7 @@ if uploaded_file is not None:
         summary_table = pd.DataFrame(columns=[
             'Day', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
             'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'CALL DROP #', 
-            'CALL DROP RATIO #', 'SYSTEM DROPPED #'
+            'SYSTEM DROPPED #', 'CALL DROP RATIO #'
         ])
         
         for date, group in df.groupby(df['Date'].dt.date):
@@ -56,10 +56,9 @@ if uploaded_file is not None:
             ptp_rate = (ptp_acc / connected_acc * 100) if connected_acc != 0 else None
 
             call_drop_count = group[group['Call Status'] == 'DROPPED']['Account No.'].count()
-            call_drop_ratio = (call_drop_count / connected * 100) if connected != 0 else None
-
             # SYSTEM DROPPED count for "SYSTEM"
             system_dropped_count = group[(group['Call Status'] == 'DROPPED') & (group['Remark By'] == 'SYSTEM')]['Account No.'].count()
+            call_drop_ratio = (call_drop_count / connected * 100) if connected != 0 else None
 
             summary_table = pd.concat([summary_table, pd.DataFrame([{
                 'Day': date,
@@ -72,8 +71,8 @@ if uploaded_file is not None:
                 'PTP ACC': ptp_acc,
                 'PTP RATE': f"{round(ptp_rate)}%" if ptp_rate is not None else None,
                 'CALL DROP #': call_drop_count,
-                'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
                 'SYSTEM DROPPED #': system_dropped_count,
+                'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
             }])], ignore_index=True)
         
         return summary_table
@@ -86,7 +85,7 @@ if uploaded_file is not None:
         summary_table = pd.DataFrame(columns=[
             'Day', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
             'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'CALL DROP #', 
-            'CALL DROP RATIO #', 'SYSTEM DROPPED #'
+            'SYSTEM DROPPED #', 'CALL DROP RATIO #'
         ])
         
         for date, group in df.groupby(df['Date'].dt.date):
@@ -103,10 +102,9 @@ if uploaded_file is not None:
             ptp_rate = (ptp_acc / connected_acc * 100) if connected_acc != 0 else None
 
             call_drop_count = group[(group['Call Status'] == 'DROPPED') & (group['Remark Type'] == remark_type)]['Account No.'].count()
-            call_drop_ratio = (call_drop_count / connected * 100) if connected != 0 else None
-
             # SYSTEM DROPPED count for "SYSTEM"
             system_dropped_count = group[(group['Call Status'] == 'DROPPED') & (group['Remark By'] == 'SYSTEM') & (group['Remark Type'] == remark_type)]['Account No.'].count()
+            call_drop_ratio = (call_drop_count / connected * 100) if connected != 0 else None
 
             summary_table = pd.concat([summary_table, pd.DataFrame([{
                 'Day': date,
@@ -119,8 +117,8 @@ if uploaded_file is not None:
                 'PTP ACC': ptp_acc,
                 'PTP RATE': f"{round(ptp_rate)}%" if ptp_rate is not None else None,
                 'CALL DROP #': call_drop_count,
-                'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
                 'SYSTEM DROPPED #': system_dropped_count,
+                'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
             }])], ignore_index=True)
         
         return summary_table
@@ -175,7 +173,6 @@ if uploaded_file is not None:
             total_rpc = collector_group[collector_group['Status'].str.contains('RPC', na=False)]['Account No.'].nunique()
             ptp_amount = collector_group[collector_group['Status'].str.contains('PTP', na=False) & (collector_group['PTP Amount'] != 0)]['PTP Amount'].sum()
             
-            
             collector_summary = pd.concat([collector_summary, pd.DataFrame([{
                 'Day': date,
                 'Collector': collector,
@@ -204,7 +201,6 @@ if uploaded_file is not None:
             claim_paid_count = collector_group[collector_group['Reason For Default'].str.contains('CURED', na=False) ]['Account No.'].nunique()
             claim_paid_amount = collector_group[collector_group['Reason For Default'].str.contains('CURED', na=False)]['Claim Paid Amount'].sum()
             balance_amount = collector_group[collector_group['Reason For Default'].str.contains('CURED', na=False) & (collector_group['Balance'] != 0)]['Balance'].sum()
-            
             
             cp_collector_summary = pd.concat([cp_collector_summary, pd.DataFrame([{
                 'Day': date,
