@@ -35,7 +35,7 @@ if uploaded_file is not None:
     df = load_data(uploaded_file)
     st.write(df)
 
-   def calculate_combined_summary(df):
+  def calculate_combined_summary(df):
     summary_table = pd.DataFrame(columns=[
         'Day', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
         'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'CALL DROP #', 'CALL DROP RATIO #'
@@ -73,6 +73,7 @@ if uploaded_file is not None:
         }])], ignore_index=True)
 
     return summary_table
+
 
     st.write("## Overall Combined Summary Table")
     combined_summary_table = calculate_combined_summary(df)
