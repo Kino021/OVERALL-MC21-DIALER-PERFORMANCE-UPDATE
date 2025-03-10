@@ -182,7 +182,3 @@ if uploaded_file is not None:
             }])], ignore_index=True)
 
         return summary_table
-
-    # Calculate and display the cp_collector_summary
-    cp_collector_summary = calculate_cp_collector_summary(df)
-    st.write(cp_collector_summary)
