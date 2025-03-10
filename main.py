@@ -35,7 +35,7 @@ uploaded_file = st.sidebar.file_uploader("Upload Daily Remark File", type="xlsx"
 if uploaded_file is not None:
     df = load_data(uploaded_file)
     st.write(df)
-    
+
     def calculate_combined_summary(df):
         summary_table = pd.DataFrame(columns=[ 
             'Day', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
@@ -55,11 +55,15 @@ if uploaded_file is not None:
             ptp_acc = group[(group['Status'].str.contains('PTP', na=False)) & (group['PTP Amount'] != 0)]['Account No.'].nunique()
             ptp_rate = (ptp_acc / connected_acc * 100) if connected_acc != 0 else None
 
-            # Include 'DROPPED' status in 'Call Status' and 'CONNECTED' only if 'Status' contains 'NEGATIVE - DROPPED CALL'
-            call_drop_dropped = group[group['Call Status'] == 'DROPPED']['Account No.'].count()
-            call_drop_connected_negative = group[group['Call Status'] == 'CONNECTED'][group['Status'].str.contains('NEGATIVE - DROPPED CALL', na=False)]['Account No.'].count()
+            # Corrected call drop condition based on new status and Remark By
+            call_drop_dropped = group[group['Call Status'] == 'DROPPED']
+            call_drop_neg_dropped = group[group['Status'].str.contains('NEGATIVE_CALLOUTS - DROPPED_CALL|NEGATIVE CALLOUTS - DROP CALL', na=False)]
+            
+            # Filter out rows where "Remark By" is "SYSTEM"
+            call_drop_filtered = call_drop_dropped[call_drop_dropped['Remark By'] != 'SYSTEM']
+            call_drop_filtered_neg = call_drop_neg_dropped[call_drop_neg_dropped['Remark By'] != 'SYSTEM']
 
-            total_call_drop_count = call_drop_dropped + call_drop_connected_negative
+            total_call_drop_count = call_drop_filtered['Account No.'].count() + call_drop_filtered_neg['Account No.'].count()
 
             call_drop_ratio = (total_call_drop_count / connected * 100) if connected != 0 else None
 
@@ -90,25 +94,39 @@ if uploaded_file is not None:
         ])
         
         for date, group in df.groupby(df['Date'].dt.date):
-            accounts = group[(group['Remark Type'] == remark_type) | ((group['Remark'] != 'Broken Promise') & (group['Remark Type'] == 'Follow Up') & (group['Remark By'] == remark_by))]['Account No.'].nunique()
-            total_dialed = group[(group['Remark Type'] == remark_type) | ((group['Remark'] != 'Broken Promise') & (group['Remark Type'] == 'Follow Up') & (group['Remark By'] == remark_by))]['Account No.'].count()
+            accounts = group[(group['Remark Type'] == remark_type) | 
+                             ((group['Remark'] != 'Broken Promise') & 
+                              (group['Remark Type'] == 'Follow Up') & 
+                              (group['Remark By'] == remark_by))]['Account No.'].nunique()
+            total_dialed = group[(group['Remark Type'] == remark_type) | 
+                                 ((group['Remark'] != 'Broken Promise') & 
+                                  (group['Remark Type'] == 'Follow Up') & 
+                                  (group['Remark By'] == remark_by))]['Account No.'].count()
 
-            connected = group[(group['Call Status'] == 'CONNECTED') & (group['Remark Type'] == remark_type)]['Account No.'].count()
+            connected = group[(group['Call Status'] == 'CONNECTED') & 
+                              (group['Remark Type'] == remark_type)]['Account No.'].count()
             connected_rate = (connected / total_dialed * 100) if total_dialed != 0 else None
-            connected_acc = group[(group['Call Status'] == 'CONNECTED') & (group['Remark Type'] == remark_type)]['Account No.'].nunique()
+            connected_acc = group[(group['Call Status'] == 'CONNECTED') & 
+                                  (group['Remark Type'] == remark_type)]['Account No.'].nunique()
 
             penetration_rate = (total_dialed / accounts * 100) if accounts != 0 else None
 
-            ptp_acc = group[(group['Status'].str.contains('PTP', na=False)) & (group['PTP Amount'] != 0) & (group['Remark Type'] == remark_type)]['Account No.'].nunique()
+            ptp_acc = group[(group['Status'].str.contains('PTP', na=False)) & 
+                            (group['PTP Amount'] != 0) & 
+                            (group['Remark Type'] == remark_type)]['Account No.'].nunique()
             ptp_rate = (ptp_acc / connected_acc * 100) if connected_acc != 0 else None
 
-            # Corrected call drop condition:
-            call_drop_count = group[(group['Call Status'] == 'DROPPED') & 
-                                     (group['Remark Type'] == remark_type) | 
-                                     ((group['Call Status'] == 'CONNECTED') & 
-                                      (group['Status'] == 'NEGATIVE - DROPPED CALL'))]['Account No.'].count()
+            # Corrected call drop condition based on new status and Remark By
+            call_drop_dropped = group[group['Call Status'] == 'DROPPED']
+            call_drop_neg_dropped = group[group['Status'].str.contains('NEGATIVE_CALLOUTS - DROPPED_CALL|NEGATIVE CALLOUTS - DROP CALL', na=False)]
+            
+            # Filter out rows where "Remark By" is "SYSTEM"
+            call_drop_filtered = call_drop_dropped[call_drop_dropped['Remark By'] != 'SYSTEM']
+            call_drop_filtered_neg = call_drop_neg_dropped[call_drop_neg_dropped['Remark By'] != 'SYSTEM']
 
-            call_drop_ratio = (call_drop_count / connected * 100) if connected != 0 else None
+            total_call_drop_count = call_drop_filtered['Account No.'].count() + call_drop_filtered_neg['Account No.'].count()
+
+            call_drop_ratio = (total_call_drop_count / connected * 100) if connected != 0 else None
 
             summary_table = pd.concat([summary_table, pd.DataFrame([{
                 'Day': date,
@@ -120,7 +138,7 @@ if uploaded_file is not None:
                 'CONNECTED ACC': connected_acc,
                 'PTP ACC': ptp_acc,
                 'PTP RATE': f"{round(ptp_rate)}%" if ptp_rate is not None else None,
-                'CALL DROP #': call_drop_count,
+                'CALL DROP #': total_call_drop_count,
                 'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
             }])], ignore_index=True)
         
