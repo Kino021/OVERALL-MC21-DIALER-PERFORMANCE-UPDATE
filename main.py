@@ -55,9 +55,12 @@ if uploaded_file is not None:
             ptp_acc = group[(group['Status'].str.contains('PTP', na=False)) & (group['PTP Amount'] != 0)]['Account No.'].nunique()
             ptp_rate = (ptp_acc / connected_acc * 100) if connected_acc != 0 else None
 
-            # Drop Call Count: Sum of drop calls from predictive and manual
-            drop_call_count = (calculate_summary(group, 'Predictive', 'SYSTEM')['CALL DROP #'].sum() + 
-                               calculate_summary(group, 'Outgoing')['CALL DROP #'].sum())
+            # Drop Call Count: Calculate drop calls for both predictive and manual directly
+            predictive_drop_count = group[(group['Call Status'] == 'DROPPED') & (group['Remark By'] == 'SYSTEM')].shape[0]
+            manual_drop_count = group[(group['Call Status'] == 'DROPPED') & 
+                                       (group['Remark Type'] == 'Outgoing') & 
+                                       (~group['Remark By'].str.upper().isin(['SYSTEM']))].shape[0]
+            drop_call_count = predictive_drop_count + manual_drop_count
 
             call_drop_ratio = (drop_call_count / connected * 100) if connected != 0 else None
 
@@ -110,7 +113,7 @@ if uploaded_file is not None:
                             (group['Remark Type'] == remark_type)]['Account No.'].nunique()
             ptp_rate = (ptp_acc / connected_acc * 100) if connected_acc != 0 else None
 
-            # Call drop count logic for the tables
+            # Drop call count logic for the tables
             if remark_type == 'Predictive' and remark_by == 'SYSTEM':
                 drop_call_count = group[(group['Call Status'] == 'DROPPED') & (group['Remark By'] == 'SYSTEM')]['Account No.'].count()
             elif remark_type == 'Outgoing' and remark_by is None:  # For manual, check only non-system agents
