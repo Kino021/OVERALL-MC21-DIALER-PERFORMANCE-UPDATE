@@ -161,6 +161,11 @@ if uploaded_file is not None:
 
     # Penetration per OB Amount Calculation - Separate Category
     st.write("## Penetration per OB Amount Calculation")
+    # Filtering for Balance 6,000 - 50,000
+    penetration_6k_50k = df[(df['Balance'] >= 6000) & (df['Balance'] < 50000)]
+    penetration_6k_50k_summary = calculate_combined_summary(penetration_6k_50k)
+    st.write("### Penetration per OB Amount: 6,000 - 50,000", penetration_6k_50k_summary)
+
     # Filtering for Balance 50,000 - 100,000
     penetration_50_100k = df[(df['Balance'] >= 50000) & (df['Balance'] <= 100000)]
     penetration_50_100k_summary = calculate_combined_summary(penetration_50_100k)
@@ -175,6 +180,10 @@ if uploaded_file is not None:
     st.write("## Summary Table by Cycle Predictive")
     for cycle, cycle_group in df.groupby('Service No.'):
         st.write(f"Cycle: {cycle}")
+        # Filtering for Balance 6,000 - 50,000
+        summary_table = calculate_summary(cycle_group, 'Predictive', 'SYSTEM', 6000, 50000)
+        st.write(summary_table)
+        
         # Filtering for Balance 50,000 - 100,000
         summary_table = calculate_summary(cycle_group, 'Predictive', 'SYSTEM', 50000, 100000)
         st.write(summary_table)
