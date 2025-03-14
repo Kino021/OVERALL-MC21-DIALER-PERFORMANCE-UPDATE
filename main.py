@@ -40,10 +40,10 @@ if uploaded_file is not None:
 
     # Ensure column names are clean
     df.columns = df.columns.str.strip()
+    df.columns = df.columns.str.upper()  # Convert to uppercase for consistency
     
-    # Rename 'BALANCE' column to 'Balance Amount' for consistency
-    if 'BALANCE' in df.columns:
-        df = df.rename(columns={'BALANCE': 'Balance Amount'})
+    # Print available columns for debugging
+    st.write("### Available Columns in Uploaded File:", df.columns.tolist())
 
     # Function to calculate combined summary
     def calculate_combined_summary(df):
@@ -96,12 +96,12 @@ if uploaded_file is not None:
             (100000, float('inf'), '100,000 and above')
         ]
 
-        if 'Balance Amount' not in df.columns:
-            st.error("Error: 'Balance Amount' column is missing in the uploaded file.")
+        if 'BALANCE' not in df.columns:
+            st.error("Error: 'BALANCE' column is missing in the uploaded file.")
             return pd.DataFrame()
 
         summary = pd.concat([
-            calculate_combined_summary(df[(df['Balance Amount'] >= min_bal) & (df['Balance Amount'] <= max_bal)])
+            calculate_combined_summary(df[(df['BALANCE'] >= min_bal) & (df['BALANCE'] <= max_bal)])
             for min_bal, max_bal, _ in balance_ranges
         ], ignore_index=True)
         
