@@ -60,6 +60,9 @@ if uploaded_file is not None:
                 'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'CALL DROP #', 'CALL DROP RATIO #'
             ]) 
 
+            # Filter for the remark types: Follow Up, Outgoing, and Predictive
+            df = df[df['Remark Type'].isin(['Follow Up', 'Outgoing', 'Predictive'])]
+
             for date, group in df.groupby(df['Date'].dt.date):
                 accounts = group[group['Remark'] != 'Broken Promise']['Account No.'].nunique()
                 total_dialed = group[group['Remark'] != 'Broken Promise']['Account No.'].count()
