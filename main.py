@@ -42,7 +42,7 @@ if uploaded_file is not None:
     def calculate_combined_summary(df):
         summary_table = pd.DataFrame(columns=[ 
             'Day', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
-            'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'CALL DROP #', 'CALL DROP RATIO #'
+            'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'CALL DROP #', 'CALL DROP RATIO #', 'PENETRATION PER OB AMOUNT'
         ])
         
         for date, group in df.groupby(df['Date'].dt.date):
@@ -67,6 +67,12 @@ if uploaded_file is not None:
 
             call_drop_ratio = (drop_call_count / connected * 100) if connected != 0 else None
 
+            # Add Penetration Per OB Amount for accounts in the balance ranges
+            penetration_per_ob_amount_50_100k = group[(group['Balance'] >= 50000) & (group['Balance'] <= 100000)]['Account No.'].nunique()
+            penetration_per_ob_amount_100k_up = group[group['Balance'] > 100000]['Account No.'].nunique()
+
+            penetration_per_ob_amount = (penetration_per_ob_amount_50_100k + penetration_per_ob_amount_100k_up) / accounts * 100 if accounts != 0 else None
+
             summary_table = pd.concat([summary_table, pd.DataFrame([{
                 'Day': date,
                 'ACCOUNTS': accounts,
@@ -79,6 +85,7 @@ if uploaded_file is not None:
                 'PTP RATE': f"{round(ptp_rate)}%" if ptp_rate is not None else None,
                 'CALL DROP #': drop_call_count,
                 'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
+                'PENETRATION PER OB AMOUNT': f"{round(penetration_per_ob_amount)}%" if penetration_per_ob_amount is not None else None
             }])], ignore_index=True)
 
         return summary_table
@@ -87,10 +94,10 @@ if uploaded_file is not None:
     combined_summary_table = calculate_combined_summary(df)
     st.write(combined_summary_table, container_width=True)
 
-    def calculate_summary(df, remark_type, remark_by=None):
+    def calculate_summary(df, remark_type, remark_by=None, balance_min=None, balance_max=None):
         summary_table = pd.DataFrame(columns=[ 
             'Day', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
-            'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'CALL DROP #', 'CALL DROP RATIO #'
+            'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'CALL DROP #', 'CALL DROP RATIO #', 'PENETRATION PER OB AMOUNT'
         ])
 
         for date, group in df.groupby(df['Date'].dt.date):
@@ -126,6 +133,13 @@ if uploaded_file is not None:
 
             call_drop_ratio = (drop_call_count / connected * 100) if connected != 0 else None
 
+            # Filter by balance range if provided
+            if balance_min is not None and balance_max is not None:
+                group = group[(group['Balance'] >= balance_min) & (group['Balance'] <= balance_max)]
+
+            # Penetration per OB Amount for the filtered balance ranges
+            penetration_per_ob_amount = group['Account No.'].nunique() / accounts * 100 if accounts != 0 else None
+
             summary_table = pd.concat([summary_table, pd.DataFrame([{
                 'Day': date,
                 'ACCOUNTS': accounts,
@@ -138,6 +152,7 @@ if uploaded_file is not None:
                 'PTP RATE': f"{round(ptp_rate)}%" if ptp_rate is not None else None,
                 'CALL DROP #': drop_call_count,
                 'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
+                'PENETRATION PER OB AMOUNT': f"{round(penetration_per_ob_amount)}%" if penetration_per_ob_amount is not None else None
             }])], ignore_index=True)
 
         return summary_table
@@ -159,7 +174,12 @@ if uploaded_file is not None:
     st.write("## Summary Table by Cycle Predictive")
     for cycle, cycle_group in df.groupby('Service No.'):
         st.write(f"Cycle: {cycle}")
-        summary_table = calculate_summary(cycle_group, 'Predictive', 'SYSTEM')
+        # Filtering for Balance 50,000 - 100,000
+        summary_table = calculate_summary(cycle_group, 'Predictive', 'SYSTEM', 50000, 100000)
+        st.write(summary_table)
+        
+        # Filtering for Balance 100,000 and above
+        summary_table = calculate_summary(cycle_group, 'Predictive', 'SYSTEM', 100000, float('inf'))
         st.write(summary_table)
 
     # Summary Table by Cycle Manual
