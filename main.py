@@ -35,6 +35,9 @@ if uploaded_file is not None:
     df = load_data(uploaded_file)
     st.write(df)
 
+    # Exclude rows where STATUS contains 'BP' (Broken Promise)
+    df = df[~df['Status'].str.contains('BP', na=False)]
+
     # Calculate Combined Summary Table
     def calculate_combined_summary(df):
         summary_table = pd.DataFrame(columns=[ 
