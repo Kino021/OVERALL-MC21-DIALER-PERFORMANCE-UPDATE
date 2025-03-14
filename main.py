@@ -27,7 +27,7 @@ def load_data(uploaded_file):
     
     # Convert 'Date' to datetime if it isn't already
     df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
-
+    
     return df
 
 uploaded_file = st.sidebar.file_uploader("Upload Daily Remark File", type="xlsx")
@@ -161,16 +161,28 @@ if uploaded_file is not None:
         # Create columns for side-by-side display
         col1, col2 = st.columns(2)
 
+        # Display Overall Predictive Summary Table
         with col1:
-            st.write("## Summary Table by Cycle Predictive")
-            for cycle, cycle_group in df.groupby('Service No.'):
-                st.write(f"Cycle: {cycle}")
-                summary_table = calculate_summary(cycle_group, 'Predictive', 'SYSTEM')
-                st.write(summary_table)
+            st.write("## Overall Predictive Summary Table")
+            overall_predictive_table = calculate_summary(df, 'Predictive', 'SYSTEM')
+            st.write(overall_predictive_table)
 
+        # Display Overall Manual Summary Table
         with col2:
-            st.write("## Summary Table by Cycle Manual")
-            for manual_cycle, manual_cycle_group in df.groupby('Service No.'):
-                st.write(f"Cycle: {manual_cycle}")
-                summary_table = calculate_summary(manual_cycle_group, 'Outgoing')
-                st.write(summary_table)
+            st.write("## Overall Manual Summary Table")
+            overall_manual_table = calculate_summary(df, 'Outgoing')
+            st.write(overall_manual_table)
+
+        # Summary Table by Cycle Predictive
+        st.write("## Summary Table by Cycle Predictive")
+        for cycle, cycle_group in df.groupby('Service No.'):
+            st.write(f"Cycle: {cycle}")
+            summary_table = calculate_summary(cycle_group, 'Predictive', 'SYSTEM')
+            st.write(summary_table)
+
+        # Summary Table by Cycle Manual
+        st.write("## Summary Table by Cycle Manual")
+        for manual_cycle, manual_cycle_group in df.groupby('Service No.'):
+            st.write(f"Cycle: {manual_cycle}")
+            summary_table = calculate_summary(manual_cycle_group, 'Outgoing')
+            st.write(summary_table)
