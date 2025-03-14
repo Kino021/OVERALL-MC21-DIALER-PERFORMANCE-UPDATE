@@ -38,6 +38,13 @@ if uploaded_file is not None:
     # Exclude rows where STATUS contains 'BP' (Broken Promise)
     df = df[~df['Status'].str.contains('BP', na=False)]
 
+    # Ensure column names are clean
+    df.columns = df.columns.str.strip()
+    
+    # Rename 'BALANCE' column to 'Balance Amount' for consistency
+    if 'BALANCE' in df.columns:
+        df = df.rename(columns={'BALANCE': 'Balance Amount'})
+
     # Function to calculate combined summary
     def calculate_combined_summary(df):
         summary_table = pd.DataFrame(columns=[ 
@@ -81,33 +88,6 @@ if uploaded_file is not None:
     combined_summary_table = calculate_combined_summary(df)
     st.write(combined_summary_table)
 
-    # Calculate summary per cycle
-    def calculate_summary(df, remark_type, remark_by=None):
-        return calculate_combined_summary(df[(df['Remark Type'] == remark_type) | (df['Remark By'] == remark_by)])
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        st.write("## Overall Predictive Summary Table")
-        predictive_summary = calculate_summary(df, 'Predictive', 'SYSTEM')
-        st.write(predictive_summary)
-
-    with col2:
-        st.write("## Overall Manual Summary Table")
-        manual_summary = calculate_summary(df, 'Outgoing')
-        st.write(manual_summary)
-
-    # Summary per cycle
-    st.write("## Summary Table by Cycle Predictive")
-    for cycle, cycle_group in df.groupby('Service No.'):
-        st.write(f"Cycle: {cycle}")
-        st.write(calculate_summary(cycle_group, 'Predictive', 'SYSTEM'))
-
-    st.write("## Summary Table by Cycle Manual")
-    for cycle, cycle_group in df.groupby('Service No.'):
-        st.write(f"Cycle: {cycle}")
-        st.write(calculate_summary(cycle_group, 'Outgoing'))
-    
     # Function to calculate balance category summary
     def calculate_balance_summary(df):
         balance_ranges = [
@@ -116,7 +96,15 @@ if uploaded_file is not None:
             (100000, float('inf'), '100,000 and above')
         ]
 
-        summary = pd.concat([calculate_combined_summary(df[(df['Balance Amount'] >= min_bal) & (df['Balance Amount'] <= max_bal)]) for min_bal, max_bal, _ in balance_ranges], ignore_index=True)
+        if 'Balance Amount' not in df.columns:
+            st.error("Error: 'Balance Amount' column is missing in the uploaded file.")
+            return pd.DataFrame()
+
+        summary = pd.concat([
+            calculate_combined_summary(df[(df['Balance Amount'] >= min_bal) & (df['Balance Amount'] <= max_bal)])
+            for min_bal, max_bal, _ in balance_ranges
+        ], ignore_index=True)
+        
         return summary
     
     st.write("## Penetration Rate by Balance Category")
