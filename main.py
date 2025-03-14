@@ -33,7 +33,7 @@ uploaded_file = st.sidebar.file_uploader("Upload Daily Remark File", type="xlsx"
 
 if uploaded_file is not None:
     df = load_data(uploaded_file)
-    # Remove the code displaying the entire "Daily Remark Summary" table
+    # Removed the line that shows the daily remark summary table
     # st.write(df)  # Comment this out if you no longer want to display the table
 
     # Exclude rows where STATUS contains 'BP' (Broken Promise)
@@ -84,6 +84,7 @@ if uploaded_file is not None:
 
         return summary_table
 
+    # Removed the line that shows the overall combined summary table
     # st.write("## Overall Combined Summary Table")  # Comment this out if you no longer want to display the overall combined summary
     combined_summary_table = calculate_combined_summary(df)
     # st.write(combined_summary_table, container_width=True)  # Comment this out to remove the summary table display
