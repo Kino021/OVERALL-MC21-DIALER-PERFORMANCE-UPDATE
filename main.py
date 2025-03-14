@@ -146,55 +146,28 @@ if uploaded_file is not None:
 
         return summary_table
 
-    # Overall Predictive Summary Table
-    col1, col2 = st.columns(2)
+    # Penetration per OB Amount Calculation - Separate Categories for Summary Table by Cycle Predictive
+    st.write("## Summary Table by Cycle Predictive - Overall Predictive")
+    
+    # Filtering for Predictive Category
+    predictive_summary = calculate_summary(df, 'Predictive', 'SYSTEM')
 
-    with col1:
-        st.write("## Overall Predictive Summary Table")
-        overall_predictive_table = calculate_summary(df, 'Predictive', 'SYSTEM')
-        st.write(overall_predictive_table)
-
-    with col2:
-        st.write("## Overall Manual Summary Table")
-        overall_manual_table = calculate_summary(df, 'Outgoing')
-        st.write(overall_manual_table)
-
-    # Penetration per OB Amount Calculation - Separate Category
-    st.write("## Penetration per OB Amount Calculation")
-    # Filtering for Balance 6,000 - 50,000
-    penetration_6k_50k = df[(df['Balance'] >= 6000) & (df['Balance'] < 50000)]
-    penetration_6k_50k_summary = calculate_combined_summary(penetration_6k_50k)
-    st.write("### Penetration per OB Amount: 6,000 - 50,000", penetration_6k_50k_summary)
-
-    # Filtering for Balance 50,000 - 100,000
-    penetration_50_100k = df[(df['Balance'] >= 50000) & (df['Balance'] <= 100000)]
-    penetration_50_100k_summary = calculate_combined_summary(penetration_50_100k)
-    st.write("### Penetration per OB Amount: 50,000 - 100,000", penetration_50_100k_summary)
-
-    # Filtering for Balance 100,000 and above
-    penetration_100k_up = df[df['Balance'] > 100000]
-    penetration_100k_up_summary = calculate_combined_summary(penetration_100k_up)
-    st.write("### Penetration per OB Amount: 100,000 and above", penetration_100k_up_summary)
-
-    # Summary Table by Cycle Predictive
-    st.write("## Summary Table by Cycle Predictive")
+    # Penetration per OB Amount Categories (6,000 - 50,000, 50,000 - 100,000, 100,000+)
     for cycle, cycle_group in df.groupby('Service No.'):
-        st.write(f"Cycle: {cycle}")
-        # Filtering for Balance 6,000 - 50,000
-        summary_table = calculate_summary(cycle_group, 'Predictive', 'SYSTEM', 6000, 50000)
-        st.write(summary_table)
-        
-        # Filtering for Balance 50,000 - 100,000
-        summary_table = calculate_summary(cycle_group, 'Predictive', 'SYSTEM', 50000, 100000)
-        st.write(summary_table)
-        
-        # Filtering for Balance 100,000 and above
-        summary_table = calculate_summary(cycle_group, 'Predictive', 'SYSTEM', 100000, float('inf'))
-        st.write(summary_table)
 
-    # Summary Table by Cycle Manual
-    st.write("## Summary Table by Cycle Manual")
-    for manual_cycle, manual_cycle_group in df.groupby('Service No.'):
-        st.write(f"Cycle: {manual_cycle}")
-        summary_table = calculate_summary(manual_cycle_group, 'Outgoing')
-        st.write(summary_table)
+        st.write(f"### Cycle {cycle} - Predictive")
+
+        # Display Predictive Data for this Cycle
+        predictive_data = calculate_summary(cycle_group, 'Predictive', 'SYSTEM')
+        st.write("#### Predictive Summary")
+        st.write(predictive_data)
+
+        st.write(f"### Cycle {cycle} - OB Amount Categories")
+
+        # Filtering and displaying OB Amount Categories
+        for min_amount, max_amount, label in [(6000, 50000, '6,000.00 - 50,000.00'),
+                                             (50000, 100000, '50,000.00 - 100,000.00'),
+                                             (100000, float('inf'), '100,000.00 and above')]:
+            st.write(f"#### {label}")
+            filtered_data = calculate_summary(cycle_group, 'Predictive', 'SYSTEM', min_amount, max_amount)
+            st.write(filtered_data)
