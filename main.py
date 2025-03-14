@@ -1,10 +1,9 @@
-import pandas as pd
 import streamlit as st
+import pandas as pd
 
-# Set up the page configuration
-st.set_page_config(layout="wide", page_title="PRODUCTIVITY", page_icon="📊", initial_sidebar_state="expanded")
+st.set_page_config(layout="wide", page_title="Daily Remark Summary", page_icon="📊", initial_sidebar_state="expanded")
 
-# Apply dark mode styling
+# Apply dark mode
 st.markdown(
     """
     <style>
@@ -20,34 +19,133 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Title of the app
 st.title('Daily Remark Summary')
 
-# Data loading function with file upload support
 @st.cache_data
 def load_data(uploaded_file):
     df = pd.read_excel(uploaded_file)
+    df = df[~df['Remark By'].isin(['FGPANGANIBAN', 'KPILUSTRISIMO', 'BLRUIZ', 'MMMEJIA', 'SAHERNANDEZ', 'GPRAMOS'
+                                   , 'JGCELIZ', 'JRELEMINO', 'HVDIGNOS', 'RALOPE', 'DRTORRALBA', 'RRCARLIT', 'MEBEJER'
+                                   , 'DASANTOS', 'SEMIJARES', 'GMCARIAN', 'RRRECTO', 'JMBORROMEO', 'EUGALERA','JATERRADO'])]
     return df
 
-# File uploader for Excel file
 uploaded_file = st.sidebar.file_uploader("Upload Daily Remark File", type="xlsx")
 
 if uploaded_file is not None:
     df = load_data(uploaded_file)
+    st.write(df)
+    
+    def calculate_combined_summary(df):
+        summary_table = pd.DataFrame(columns=[
+            'Day', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
+            'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'CALL DROP #', 'CALL DROP RATIO #'
+        ])
+        
+        for date, group in df.groupby(df['Date'].dt.date):
+            accounts = group[group['Remark'] != 'Broken Promise']['Account No.'].nunique()
+            total_dialed = group[group['Remark'] != 'Broken Promise']['Account No.'].count()
 
-    # Ensure 'Time' column is in datetime format
-    df['Time'] = pd.to_datetime(df['Time'], errors='coerce').dt.time
+            connected = group[group['Call Status'] == 'CONNECTED']['Account No.'].count()
+            connected_rate = (connected / total_dialed * 100) if total_dialed != 0 else None
+            connected_acc = group[group['Call Status'] == 'CONNECTED']['Account No.'].nunique()
 
-    # Filter out specific users based on 'Remark By'
-    exclude_users = ['FGPANGANIBAN', 'KPILUSTRISIMO', 'BLRUIZ', 'MMMEJIA', 'SAHERNANDEZ', 'GPRAMOS',
-                     'JGCELIZ', 'SPMADRID', 'RRCARLIT', 'MEBEJER',
-                     'SEMIJARES', 'GMCARIAN', 'RRRECTO', 'EASORIANO', 'EUGALERA','JATERRADO','LMLABRADOR']
-    df = df[~df['Remark By'].isin(exclude_users)]
+            penetration_rate = (total_dialed / accounts * 100) if accounts != 0 else None
 
-    # Create the columns layout
+            ptp_acc = group[(group['Status'].str.contains('PTP', na=False)) & (group['PTP Amount'] != 0)]['Account No.'].nunique()
+            ptp_rate = (ptp_acc / connected_acc * 100) if connected_acc != 0 else None
+
+            call_drop_count = group[group['Call Status'] == 'DROPPED']['Account No.'].count()
+            call_drop_ratio = (call_drop_count / connected * 100) if connected != 0 else None
+
+            summary_table = pd.concat([summary_table, pd.DataFrame([{
+                'Day': date,
+                'ACCOUNTS': accounts,
+                'TOTAL DIALED': total_dialed,
+                'PENETRATION RATE (%)': f"{round(penetration_rate)}%" if penetration_rate is not None else None,
+                'CONNECTED #': connected,
+                'CONNECTED RATE (%)': f"{round(connected_rate)}%" if connected_rate is not None else None,
+                'CONNECTED ACC': connected_acc,
+                'PTP ACC': ptp_acc,
+                'PTP RATE': f"{round(ptp_rate)}%" if ptp_rate is not None else None,
+                'CALL DROP #': call_drop_count,
+                'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
+            }])], ignore_index=True)
+        
+        return summary_table
+
+    st.write("## Overall Combined Summary Table")
+    combined_summary_table = calculate_combined_summary(df)
+    st.write(combined_summary_table, container_width=True)
+
+    def calculate_summary(df, remark_type, remark_by=None):
+        summary_table = pd.DataFrame(columns=[
+            'Day', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
+            'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'CALL DROP #', 'CALL DROP RATIO #'
+        ])
+        
+        for date, group in df.groupby(df['Date'].dt.date):
+            accounts = group[(group['Remark Type'] == remark_type) | ((group['Remark'] != 'Broken Promise') & (group['Remark Type'] == 'Follow Up') & (group['Remark By'] == remark_by))]['Account No.'].nunique()
+            total_dialed = group[(group['Remark Type'] == remark_type) | ((group['Remark'] != 'Broken Promise') & (group['Remark Type'] == 'Follow Up') & (group['Remark By'] == remark_by))]['Account No.'].count()
+
+            connected = group[(group['Call Status'] == 'CONNECTED') & (group['Remark Type'] == remark_type)]['Account No.'].count()
+            connected_rate = (connected / total_dialed * 100) if total_dialed != 0 else None
+            connected_acc = group[(group['Call Status'] == 'CONNECTED') & (group['Remark Type'] == remark_type)]['Account No.'].nunique()
+
+            penetration_rate = (total_dialed / accounts * 100) if accounts != 0 else None
+
+            ptp_acc = group[(group['Status'].str.contains('PTP', na=False)) & (group['PTP Amount'] != 0) & (group['Remark Type'] == remark_type)]['Account No.'].nunique()
+            ptp_rate = (ptp_acc / connected_acc * 100) if connected_acc != 0 else None
+
+            call_drop_count = group[(group['Call Status'] == 'DROPPED') & (group['Remark Type'] == remark_type)]['Account No.'].count()
+            call_drop_ratio = (call_drop_count / connected * 100) if connected != 0 else None
+
+            summary_table = pd.concat([summary_table, pd.DataFrame([{
+                'Day': date,
+                'ACCOUNTS': accounts,
+                'TOTAL DIALED': total_dialed,
+                'PENETRATION RATE (%)': f"{round(penetration_rate)}%" if penetration_rate is not None else None,
+                'CONNECTED #': connected,
+                'CONNECTED RATE (%)': f"{round(connected_rate)}%" if connected_rate is not None else None,
+                'CONNECTED ACC': connected_acc,
+                'PTP ACC': ptp_acc,
+                'PTP RATE': f"{round(ptp_rate)}%" if ptp_rate is not None else None,
+                'CALL DROP #': call_drop_count,
+                'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
+            }])], ignore_index=True)
+        
+        return summary_table
+
     col1, col2 = st.columns(2)
 
     with col1:
+        st.write("## Overall Predictive Summary Table")
+        overall_summary_table = calculate_summary(df, 'Predictive', 'SYSTEM')
+        st.write(overall_summary_table)
+
+    with col2:
+        st.write("## Overall Manual Summary Table")
+        overall_manual_table = calculate_summary(df, 'Outgoing')
+        st.write(overall_manual_table)
+
+    col3, col4 = st.columns(2)
+
+    with col3:
+        st.write("## Summary Table by Cycle Predictive")
+        for cycle, cycle_group in df.groupby('Service No.'):
+            st.write(f"Cycle: {cycle}")
+            summary_table = calculate_summary(cycle_group, 'Predictive', 'SYSTEM')
+            st.write(summary_table)
+
+    with col4:
+        st.write("## Summary Table by Cycle Manual")
+        for manual_cycle, manual_cycle_group in df.groupby('Service No.'):
+            st.write(f"Cycle: {manual_cycle}")
+            summary_table = calculate_summary(manual_cycle_group, 'Outgoing')
+            st.write(summary_table)
+
+    col5, col6 = st.columns(2)
+
+    with col5:
         st.write("## Summary Table by Collector per Day")
 
         # Add date filter
@@ -57,82 +155,53 @@ if uploaded_file is not None:
 
         filtered_df = df[(df['Date'].dt.date >= start_date) & (df['Date'].dt.date <= end_date)]
 
-        # Initialize an empty DataFrame for the summary table by collector
-        collector_summary = pd.DataFrame(columns=[ 
-            'Day', 'Collector', 'Total Calls', 'Total Connected', 'Total PTP', 'Total RPC', 'PTP Amount', 'Balance Amount', 'Talk Time (HH:MM:SS)'
+        collector_summary = pd.DataFrame(columns=[
+            'Day', 'Collector', 'Total Connected', 'Total PTP', 'Total RPC', 'PTP Amount'
         ])
-
-        # Group by 'Date' and 'Remark By' (Collector)
+        
         for (date, collector), collector_group in filtered_df[~filtered_df['Remark By'].str.upper().isin(['SYSTEM'])].groupby([filtered_df['Date'].dt.date, 'Remark By']):
-            # Calculate the metrics
             total_connected = collector_group[collector_group['Call Status'] == 'CONNECTED']['Account No.'].count()
             total_ptp = collector_group[collector_group['Status'].str.contains('PTP', na=False) & (collector_group['PTP Amount'] != 0)]['Account No.'].nunique()
             total_rpc = collector_group[collector_group['Status'].str.contains('RPC', na=False)]['Account No.'].nunique()
             ptp_amount = collector_group[collector_group['Status'].str.contains('PTP', na=False) & (collector_group['PTP Amount'] != 0)]['PTP Amount'].sum()
-
-            # Filter rows where PTP Amount is not zero for balance calculation
-            balance_amount = collector_group[(collector_group['Status'].str.contains('PTP', na=False)) & (collector_group['PTP Amount'] != 0)]['Balance'].sum()
-
-            # Calculate talk time in minutes
-            total_talk_time = collector_group['Talk Time Duration'].sum() / 60  # Convert from seconds to minutes
-
-            # Round the total talk time to nearest second and convert to HH:MM:SS format
-            rounded_talk_time = round(total_talk_time * 60)  # Round to nearest second
-            talk_time_str = str(pd.to_timedelta(rounded_talk_time, unit='s'))  # Convert to Timedelta and then to string
-            formatted_talk_time = talk_time_str.split()[2]  # Extract the time part from the string (HH:MM:SS)
-
-            # Add the total calls (filter rows based on Remark Type)
-            total_calls = collector_group[
-                collector_group['Remark Type'].str.contains('OUTGOING|FOLLOWUP|PREDICTIVE', case=False, na=False) &
-                ~collector_group['Remark By'].isin(exclude_users)
-            ].shape[0]
-
-            # Add the row to the summary with Total Calls after Collector
+            
+            
             collector_summary = pd.concat([collector_summary, pd.DataFrame([{
                 'Day': date,
                 'Collector': collector,
-                'Total Calls': total_calls,  # Move Total Calls after Collector
                 'Total Connected': total_connected,
                 'Total PTP': total_ptp,
                 'Total RPC': total_rpc,
                 'PTP Amount': ptp_amount,
-                'Balance Amount': balance_amount,
-                'Talk Time (HH:MM:SS)': formatted_talk_time,  # Add formatted talk time
             }])], ignore_index=True)
-
-        # Calculate and append totals for the collector summary
-        total_calls = collector_summary['Total Calls'].sum()  # Total Calls count across all collectors
-
-        # Calculate the total talk time for the total row
-        total_talk_time_minutes = collector_summary['Talk Time (HH:MM:SS)'].apply(
-            lambda x: pd.to_timedelta(x).total_seconds() / 60).sum()  # Sum the talk time in minutes
-
-        # Round the total talk time to the nearest second before converting to HH:MM:SS
-        rounded_total_talk_time_minutes = round(total_talk_time_minutes)
-
-        # Format the total talk time as HH:MM:SS
-        rounded_total_talk_time_seconds = round(rounded_total_talk_time_minutes * 60)  # Round to nearest second
-        total_talk_time_str = str(pd.to_timedelta(rounded_total_talk_time_seconds, unit='s')).split()[2]
-
-        total_row = pd.DataFrame([{
-            'Day': 'Total',
-            'Collector': '',
-            'Total Calls': total_calls,  # Total Calls is now after Collector
-            'Total Connected': collector_summary['Total Connected'].sum(),
-            'Total PTP': collector_summary['Total PTP'].sum(),
-            'Total RPC': collector_summary['Total RPC'].sum(),
-            'PTP Amount': collector_summary['PTP Amount'].sum(),
-            'Balance Amount': collector_summary['Balance Amount'].sum(),
-            'Talk Time (HH:MM:SS)': total_talk_time_str,  # Add formatted total talk time
-        }])
-
-        collector_summary = pd.concat([collector_summary, total_row], ignore_index=True)
-
-        # Round off numeric columns to 2 decimal places
-        collector_summary[['PTP Amount', 'Balance Amount']] = collector_summary[['PTP Amount', 'Balance Amount']].round(2)
-
-        # Reorder columns to ensure Total Calls is after Collector
-        column_order = ['Day', 'Collector', 'Total Calls', 'Total Connected', 'Total PTP', 'Total RPC', 'PTP Amount', 'Balance Amount', 'Talk Time (HH:MM:SS)']
-        collector_summary = collector_summary[column_order]
-
+        
         st.write(collector_summary)
+    with col6:
+        st.write("## Claim Paid Summary Table")
+
+        # Add date filter
+        min_date = df['Date'].min().date()
+        max_date = df['Date'].max().date()
+        start_date, end_date = st.date_input("Select date ranges", [min_date, max_date], min_value=min_date, max_value=max_date)
+
+        filtered_df = df[(df['Date'].dt.date >= start_date) & (df['Date'].dt.date <= end_date)]
+
+        cp_collector_summary = pd.DataFrame(columns=[
+            'Day', 'Collector', 'Total Claim Paid','Claim Paid Amount','Balance Amount'
+        ])
+        
+        for (date, collector), collector_group in filtered_df[~filtered_df['Remark By'].str.upper().isin(['SYSTEM'])].groupby([filtered_df['Date'].dt.date, 'Remark By']):
+            claim_paid_count = collector_group[collector_group['Reason For Default'].str.contains('CURED', na=False) ]['Account No.'].nunique()
+            claim_paid_amount = collector_group[collector_group['Reason For Default'].str.contains('CURED', na=False)]['Claim Paid Amount'].sum()
+            balance_amount = collector_group[collector_group['Reason For Default'].str.contains('CURED', na=False) & (collector_group['Balance'] != 0)]['Balance'].sum()
+            
+            
+            cp_collector_summary = pd.concat([cp_collector_summary, pd.DataFrame([{
+                'Day': date,
+                'Collector': collector,
+                'Total Claim Paid': claim_paid_count,
+                'Claim Paid Amount': claim_paid_amount,
+                'Balance Amount': balance_amount
+            }])], ignore_index=True)
+        
+        st.write(cp_collector_summary)
