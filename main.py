@@ -27,6 +27,7 @@ def load_data(uploaded_file):
     df = df[~df['Remark By'].isin(['FGPANGANIBAN', 'KPILUSTRISIMO', 'BLRUIZ', 'MMMEJIA', 'SAHERNANDEZ', 'GPRAMOS'
                                    , 'JGCELIZ', 'JRELEMINO', 'HVDIGNOS', 'RALOPE', 'DRTORRALBA', 'RRCARLIT', 'MEBEJER'
                                    , 'DASANTOS', 'SEMIJARES', 'GMCARIAN', 'RRRECTO', 'JMBORROMEO', 'EUGALERA','JATERRADO'])]
+
     return df
 
 uploaded_file = st.sidebar.file_uploader("Upload Daily Remark File", type="xlsx")
@@ -36,7 +37,7 @@ if uploaded_file is not None:
     st.write(df)
     
     def calculate_combined_summary(df):
-        summary_table = pd.DataFrame(columns=[
+        summary_table = pd.DataFrame(columns=[ 
             'Day', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
             'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'CALL DROP #', 'CALL DROP RATIO #'
         ])
@@ -54,7 +55,8 @@ if uploaded_file is not None:
             ptp_acc = group[(group['Status'].str.contains('PTP', na=False)) & (group['PTP Amount'] != 0)]['Account No.'].nunique()
             ptp_rate = (ptp_acc / connected_acc * 100) if connected_acc != 0 else None
 
-            call_drop_count = group[group['Call Status'] == 'DROPPED']['Account No.'].count()
+            # Updated logic: Only count 'DROPPED' calls where 'Remark By' is 'SYSTEM'
+            call_drop_count = group[(group['Call Status'] == 'DROPPED') & (group['Remark By'] == 'SYSTEM')]['Account No.'].count()
             call_drop_ratio = (call_drop_count / connected * 100) if connected != 0 else None
 
             summary_table = pd.concat([summary_table, pd.DataFrame([{
@@ -78,7 +80,7 @@ if uploaded_file is not None:
     st.write(combined_summary_table, container_width=True)
 
     def calculate_summary(df, remark_type, remark_by=None):
-        summary_table = pd.DataFrame(columns=[
+        summary_table = pd.DataFrame(columns=[ 
             'Day', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
             'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'CALL DROP #', 'CALL DROP RATIO #'
         ])
@@ -96,7 +98,8 @@ if uploaded_file is not None:
             ptp_acc = group[(group['Status'].str.contains('PTP', na=False)) & (group['PTP Amount'] != 0) & (group['Remark Type'] == remark_type)]['Account No.'].nunique()
             ptp_rate = (ptp_acc / connected_acc * 100) if connected_acc != 0 else None
 
-            call_drop_count = group[(group['Call Status'] == 'DROPPED') & (group['Remark Type'] == remark_type)]['Account No.'].count()
+            # Updated logic: Only count 'DROPPED' calls where 'Remark By' is 'SYSTEM'
+            call_drop_count = group[(group['Call Status'] == 'DROPPED') & (group['Remark By'] == 'SYSTEM') & (group['Remark Type'] == remark_type)]['Account No.'].count()
             call_drop_ratio = (call_drop_count / connected * 100) if connected != 0 else None
 
             summary_table = pd.concat([summary_table, pd.DataFrame([{
@@ -155,7 +158,7 @@ if uploaded_file is not None:
 
         filtered_df = df[(df['Date'].dt.date >= start_date) & (df['Date'].dt.date <= end_date)]
 
-        collector_summary = pd.DataFrame(columns=[
+        collector_summary = pd.DataFrame(columns=[ 
             'Day', 'Collector', 'Total Connected', 'Total PTP', 'Total RPC', 'PTP Amount'
         ])
         
@@ -164,7 +167,6 @@ if uploaded_file is not None:
             total_ptp = collector_group[collector_group['Status'].str.contains('PTP', na=False) & (collector_group['PTP Amount'] != 0)]['Account No.'].nunique()
             total_rpc = collector_group[collector_group['Status'].str.contains('RPC', na=False)]['Account No.'].nunique()
             ptp_amount = collector_group[collector_group['Status'].str.contains('PTP', na=False) & (collector_group['PTP Amount'] != 0)]['PTP Amount'].sum()
-            
             
             collector_summary = pd.concat([collector_summary, pd.DataFrame([{
                 'Day': date,
@@ -186,15 +188,14 @@ if uploaded_file is not None:
 
         filtered_df = df[(df['Date'].dt.date >= start_date) & (df['Date'].dt.date <= end_date)]
 
-        cp_collector_summary = pd.DataFrame(columns=[
-            'Day', 'Collector', 'Total Claim Paid','Claim Paid Amount','Balance Amount'
+        cp_collector_summary = pd.DataFrame(columns=[ 
+            'Day', 'Collector', 'Total Claim Paid', 'Claim Paid Amount', 'Balance Amount'
         ])
         
         for (date, collector), collector_group in filtered_df[~filtered_df['Remark By'].str.upper().isin(['SYSTEM'])].groupby([filtered_df['Date'].dt.date, 'Remark By']):
             claim_paid_count = collector_group[collector_group['Reason For Default'].str.contains('CURED', na=False) ]['Account No.'].nunique()
             claim_paid_amount = collector_group[collector_group['Reason For Default'].str.contains('CURED', na=False)]['Claim Paid Amount'].sum()
             balance_amount = collector_group[collector_group['Reason For Default'].str.contains('CURED', na=False) & (collector_group['Balance'] != 0)]['Balance'].sum()
-            
             
             cp_collector_summary = pd.concat([cp_collector_summary, pd.DataFrame([{
                 'Day': date,
