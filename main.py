@@ -39,8 +39,19 @@ uploaded_file = st.sidebar.file_uploader("Upload Daily Remark File", type="xlsx"
 if uploaded_file is not None:
     df = load_data(uploaded_file)
 
-    # Exclude rows where STATUS contains 'BP' (Broken Promise)
-    df = df[~df['Status'].str.contains('BP', na=False)]
+    # Exclude rows where STATUS contains 'BP' (Broken Promise) or 'ABORT'
+    df = df[~df['Status'].str.contains('BP|ABORT', na=False)]
+    
+    # Exclude rows where REMARK contains certain keywords or phrases
+    excluded_remarks = [
+        "NEW", 
+        "New files imported", 
+        "Updates when case reassign to another collector", 
+        "NDF IN ICS", 
+        "FOR PULL OUT (END OF HANDLING PERIOD)", 
+        "END OF HANDLING PERIOD"
+    ]
+    df = df[~df['Remark'].str.contains('|'.join(excluded_remarks), case=False, na=False)]
 
     # Check if data is empty after filtering
     if df.empty:
