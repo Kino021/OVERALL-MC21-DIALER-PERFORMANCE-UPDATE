@@ -52,7 +52,7 @@ if uploaded_file is not None:
             'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'CALL DROP #', 'CALL DROP RATIO #'
         ])
 
-        for date, group in df.groupby(df['Date'].dt.date):
+        for date, group in df.groupby(df['DATE'].dt.date):
             accounts = group['Account No.'].nunique()
             total_dialed = group['Account No.'].count()
 
@@ -97,6 +97,7 @@ if uploaded_file is not None:
         ]
 
         if 'BALANCE' not in df.columns:
+            st.write("Detected column names:", df.columns.tolist())
             st.error("Error: 'BALANCE' column is missing in the uploaded file.")
             return pd.DataFrame()
 
