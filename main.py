@@ -3,7 +3,7 @@ import pandas as pd
 
 st.set_page_config(layout="wide", page_title="Daily Remark Summary", page_icon="📊", initial_sidebar_state="expanded")
 
-# Apply dark mode more effectively
+# Apply dark mode styling
 st.markdown(
     """
     <style>
@@ -26,18 +26,21 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.title('Daily Remark Summary')
-
 @st.cache_data
 def load_data(uploaded_file):
     df = pd.read_excel(uploaded_file, keep_default_na=False)
-    df['Date'] = pd.to_datetime(df['Date'], errors='coerce')  # Ensure date format
+    
+    # Convert date column to datetime format
+    df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
+
+    # Exclude specific users
     excluded_users = [
         'FGPANGANIBAN', 'KPILUSTRISIMO', 'BLRUIZ', 'MMMEJIA', 'SAHERNANDEZ', 'GPRAMOS',
         'JGCELIZ', 'JRELEMINO', 'HVDIGNOS', 'RALOPE', 'DRTORRALBA', 'RRCARLIT', 'MEBEJER',
-        'DASANTOS', 'SEMIJARES', 'GMCARIAN', 'RRRECTO', 'JMBORROMEO', 'EUGALERA','JATERRADO'
+        'DASANTOS', 'SEMIJARES', 'GMCARIAN', 'RRRECTO', 'JMBORROMEO', 'EUGALERA', 'JATERRADO'
     ]
     df = df[~df['Remark By'].isin(excluded_users)]
+
     return df
 
 uploaded_file = st.sidebar.file_uploader("Upload Daily Remark File", type="xlsx")
@@ -45,7 +48,7 @@ uploaded_file = st.sidebar.file_uploader("Upload Daily Remark File", type="xlsx"
 if uploaded_file is not None:
     df = load_data(uploaded_file)
 
-    # Exclude rows where STATUS contains 'BP' (Broken Promise)
+    # Exclude "Broken Promise" (BP) entries
     df = df[~df['Status'].str.contains('BP', na=False)]
 
     st.subheader("Filtered Data Preview")
