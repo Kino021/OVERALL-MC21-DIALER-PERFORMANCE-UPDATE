@@ -44,7 +44,7 @@ if uploaded_file is not None:
             'Day', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
             'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'CALL DROP #', 'CALL DROP RATIO #'
         ])
-        
+
         for date, group in df.groupby(df['Date'].dt.date):
             accounts = group[group['Remark'] != 'Broken Promise']['Account No.'].nunique()
             total_dialed = group[group['Remark'] != 'Broken Promise']['Account No.'].count()
@@ -78,7 +78,7 @@ if uploaded_file is not None:
                 'PTP ACC': ptp_acc,
                 'PTP RATE': f"{round(ptp_rate)}%" if ptp_rate is not None else None,
                 'CALL DROP #': drop_call_count,
-                'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None
+                'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
             }])], ignore_index=True)
 
         return summary_table
@@ -87,7 +87,7 @@ if uploaded_file is not None:
     combined_summary_table = calculate_combined_summary(df)
     st.write(combined_summary_table, container_width=True)
 
-    def calculate_summary(df, remark_type, remark_by=None, balance_min=None, balance_max=None):
+    def calculate_summary(df, remark_type, remark_by=None):
         summary_table = pd.DataFrame(columns=[ 
             'Day', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
             'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'CALL DROP #', 'CALL DROP RATIO #'
@@ -126,10 +126,6 @@ if uploaded_file is not None:
 
             call_drop_ratio = (drop_call_count / connected * 100) if connected != 0 else None
 
-            # Filter by balance range if provided
-            if balance_min is not None and balance_max is not None:
-                group = group[(group['Balance'] >= balance_min) & (group['Balance'] <= balance_max)]
-
             summary_table = pd.concat([summary_table, pd.DataFrame([{
                 'Day': date,
                 'ACCOUNTS': accounts,
@@ -141,33 +137,34 @@ if uploaded_file is not None:
                 'PTP ACC': ptp_acc,
                 'PTP RATE': f"{round(ptp_rate)}%" if ptp_rate is not None else None,
                 'CALL DROP #': drop_call_count,
-                'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None
+                'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
             }])], ignore_index=True)
 
         return summary_table
 
-    # Penetration per OB Amount Calculation - Separate Categories for Summary Table by Cycle Predictive
-    st.write("## Summary Table by Cycle Predictive - Overall Predictive")
-    
-    # Filtering for Predictive Category
-    predictive_summary = calculate_summary(df, 'Predictive', 'SYSTEM')
+    # Overall Predictive Summary Table
+    col1, col2 = st.columns(2)
 
-    # Penetration per OB Amount Categories (6,000 - 50,000, 50,000 - 100,000, 100,000+)
+    with col1:
+        st.write("## Overall Predictive Summary Table")
+        overall_predictive_table = calculate_summary(df, 'Predictive', 'SYSTEM')
+        st.write(overall_predictive_table)
+
+    with col2:
+        st.write("## Overall Manual Summary Table")
+        overall_manual_table = calculate_summary(df, 'Outgoing')
+        st.write(overall_manual_table)
+
+    # Summary Table by Cycle Predictive
+    st.write("## Summary Table by Cycle Predictive")
     for cycle, cycle_group in df.groupby('Service No.'):
+        st.write(f"Cycle: {cycle}")
+        summary_table = calculate_summary(cycle_group, 'Predictive', 'SYSTEM')
+        st.write(summary_table)
 
-        st.write(f"### Cycle {cycle} - Predictive")
-
-        # Display Predictive Data for this Cycle
-        predictive_data = calculate_summary(cycle_group, 'Predictive', 'SYSTEM')
-        st.write("#### Predictive Summary")
-        st.write(predictive_data)
-
-        st.write(f"### Cycle {cycle} - OB Amount Categories")
-
-        # Filtering and displaying OB Amount Categories
-        for min_amount, max_amount, label in [(6000, 50000, '6,000.00 - 50,000.00'),
-                                             (50000, 100000, '50,000.00 - 100,000.00'),
-                                             (100000, float('inf'), '100,000.00 and above')]:
-            st.write(f"#### {label}")
-            filtered_data = calculate_summary(cycle_group, 'Predictive', 'SYSTEM', min_amount, max_amount)
-            st.write(filtered_data)
+    # Summary Table by Cycle Manual
+    st.write("## Summary Table by Cycle Manual")
+    for manual_cycle, manual_cycle_group in df.groupby('Service No.'):
+        st.write(f"Cycle: {manual_cycle}")
+        summary_table = calculate_summary(manual_cycle_group, 'Outgoing')
+        st.write(summary_table)
