@@ -151,29 +151,19 @@ if uploaded_file is not None:
 
             return summary_table
 
-        # Display Predictive and Manual Summary Tables
+        # Create columns for side-by-side display
         col1, col2 = st.columns(2)
 
         with col1:
-            st.write("## Overall Predictive Summary Table")
-            overall_predictive_table = calculate_summary(df, 'Predictive', 'SYSTEM')
-            st.write(overall_predictive_table)
+            st.write("## Summary Table by Cycle Predictive")
+            for cycle, cycle_group in df.groupby('Service No.'):
+                st.write(f"Cycle: {cycle}")
+                summary_table = calculate_summary(cycle_group, 'Predictive', 'SYSTEM')
+                st.write(summary_table)
 
         with col2:
-            st.write("## Overall Manual Summary Table")
-            overall_manual_table = calculate_summary(df, 'Outgoing')
-            st.write(overall_manual_table)
-
-        # Summary Table by Cycle Predictive
-        st.write("## Summary Table by Cycle Predictive")
-        for cycle, cycle_group in df.groupby('Service No.'):
-            st.write(f"Cycle: {cycle}")
-            summary_table = calculate_summary(cycle_group, 'Predictive', 'SYSTEM')
-            st.write(summary_table)
-
-        # Summary Table by Cycle Manual
-        st.write("## Summary Table by Cycle Manual")
-        for manual_cycle, manual_cycle_group in df.groupby('Service No.'):
-            st.write(f"Cycle: {manual_cycle}")
-            summary_table = calculate_summary(manual_cycle_group, 'Outgoing')
-            st.write(summary_table)
+            st.write("## Summary Table by Cycle Manual")
+            for manual_cycle, manual_cycle_group in df.groupby('Service No.'):
+                st.write(f"Cycle: {manual_cycle}")
+                summary_table = calculate_summary(manual_cycle_group, 'Outgoing')
+                st.write(summary_table)
