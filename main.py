@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-st.set_page_config(layout="wide", page_title="Daily Remark Summary", page_icon="\ud83d\udcca", initial_sidebar_state="expanded")
+st.set_page_config(layout="wide", page_title="Daily Remark Summary", page_icon="📊", initial_sidebar_state="expanded")
 
 # Apply dark mode
 st.markdown(
