@@ -190,8 +190,8 @@ if uploaded_file is not None:
 
         # Display Overall Predictive Summary Table (Modified)
         with col1:
-            st.write("## Overall Predictive Summary Table")
-            overall_predictive_table = calculate_summary(df, 'Predictive', 'SYSTEM')
+            st.write("## Overall Predictive + Follow Up Summary Table")  # Updated name to reflect changes
+            overall_predictive_table = calculate_summary(df, 'Follow Up', 'SYSTEM')  # Use Follow Up as well
             st.write(overall_predictive_table)
 
         # Display Overall Manual Summary Table (excluding SYSTEM CALL DROP #)
