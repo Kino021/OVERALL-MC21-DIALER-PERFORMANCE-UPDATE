@@ -78,7 +78,9 @@ if uploaded_file is not None:
                 ptp_acc = group[(group['Status'].str.contains('PTP', na=False)) & (group['PTP Amount'] != 0)]['Account No.'].nunique()
                 ptp_rate = (ptp_acc / connected_acc * 100) if connected_acc != 0 else None
 
-                # Drop Call Count: Calculate drop calls for both predictive and manual directly
+                # Drop Call Count: Initialize drop_call_count for all scenarios
+                drop_call_count = 0  # Initialize it here to avoid UnboundLocalError
+                
                 predictive_drop_count = group[(group['Call Status'] == 'DROPPED') & (group['Remark By'] == 'SYSTEM')].shape[0]
                 manual_drop_count = group[(group['Call Status'] == 'DROPPED') & 
                                            (group['Remark Type'] == 'Outgoing') & 
@@ -142,6 +144,7 @@ if uploaded_file is not None:
                 ptp_rate = (ptp_acc / connected_acc * 100) if connected_acc != 0 else None
 
                 # Drop call count logic for the tables
+                drop_call_count = 0  # Initialize drop_call_count to avoid UnboundLocalError
                 if remark_type == 'Predictive' and remark_by == 'SYSTEM':
                     drop_call_count = group[(group['Call Status'] == 'DROPPED') & (group['Remark By'] == 'SYSTEM')]['Account No.'].count()
                 elif remark_type == 'Outgoing' and remark_by is None:  # For manual, check only non-system agents
@@ -178,17 +181,13 @@ if uploaded_file is not None:
 
             return summary_table
 
-        # Create columns for side-by-side display
-        col1, col2 = st.columns(2)
+        # Display Predictive Summary Table
+        st.write("## Overall Predictive Summary Table")
+        overall_predictive_table = calculate_summary(df, 'Predictive', remark_by='SYSTEM')
+        st.write(overall_predictive_table)
 
-        # Display Overall Predictive Summary Table (Modified)
-        with col1:
-            st.write("## Overall Predictive Summary Table")
-            overall_predictive_table = calculate_summary(df, 'Predictive', remark_by=None)
-            st.write(overall_predictive_table, container_width=True)
-
-        # Display Follow-up Summary Table
-        with col2:
-            st.write("## Follow-up Summary Table")
-            follow_up_table = calculate_summary(df, 'Follow Up', remark_by='SYSTEM')
-            st.write(follow_up_table, container_width=True)
+        # Display Manual Summary Table
+        st.write("## Overall Manual Summary Table")
+        overall_manual_table = calculate_summary(df, 'Outgoing')
+        overall_manual_table = overall_manual_table.drop(columns=['SYSTEM CALL DROP #'], errors='ignore')
+        st.write(overall_manual_table)
