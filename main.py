@@ -54,7 +54,7 @@ if uploaded_file is not None:
     if df.empty:
         st.warning("No valid data available after filtering.")
     else:
-        # Calculate Combined Summary Table with Negative Call Drop
+        # Calculate Combined Summary Table with Negative Call Drop (unchanged)
         def calculate_combined_summary(df):
             summary_table = pd.DataFrame(columns=[ 
                 'Day', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
@@ -107,7 +107,7 @@ if uploaded_file is not None:
 
             return summary_table
 
-        # Display Combined Summary Table
+        # Display Combined Summary Table (unchanged)
         st.write("## Overall Combined Summary Table")
         combined_summary_table = calculate_combined_summary(df)
         st.write(combined_summary_table, container_width=True)
@@ -161,11 +161,11 @@ if uploaded_file is not None:
                 negative_call_drop_count = group[(group['Status'].str.contains('NEGATIVE CALLOUTS - DROP CALL', na=False)) & 
                                                   group['Remark Type'].isin([remark_type])].shape[0]
 
-                # For Manual Summary (Outgoing) and Cycle Manual, set 'SYSTEM CALL DROP #' to 0
+                # For manual (Outgoing), we ensure SYSTEM CALL DROP is set to 0
                 if remark_type == 'Outgoing':
-                    drop_call_count = 0  # Set SYSTEM CALL DROP # to 0 for Manual Calls
+                    drop_call_count = 0
 
-                # Update CALL DROP RATIO to be NEGATIVE CALL DROP # / CONNECTED # * 100
+                # Update CALL DROP RATIO for Manual Calls
                 call_drop_ratio = (negative_call_drop_count / connected * 100) if connected != 0 else None
 
                 summary_table = pd.concat([summary_table, pd.DataFrame([{
@@ -178,7 +178,7 @@ if uploaded_file is not None:
                     'CONNECTED ACC': connected_acc,
                     'PTP ACC': ptp_acc,
                     'PTP RATE': f"{round(ptp_rate)}%" if ptp_rate is not None else None,
-                    'SYSTEM CALL DROP #': drop_call_count,  # Explicitly set to 0 in Manual Summary
+                    'SYSTEM CALL DROP #': 0,  # Set SYSTEM CALL DROP # to 0 for Manual Calls
                     'NEGATIVE CALL DROP #': negative_call_drop_count,  # Moved after 'SYSTEM CALL DROP #'
                     'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
                 }])], ignore_index=True)
@@ -188,7 +188,7 @@ if uploaded_file is not None:
         # Create columns for side-by-side display
         col1, col2 = st.columns(2)
 
-        # Display Overall Predictive Summary Table (Modified)
+        # Display Overall Predictive Summary Table (unchanged)
         with col1:
             st.write("## Overall Predictive Summary Table")
             overall_predictive_table = calculate_summary(df, 'Predictive', 'SYSTEM')
@@ -200,7 +200,7 @@ if uploaded_file is not None:
             overall_manual_table = calculate_summary(df, 'Outgoing')
             st.write(overall_manual_table)
 
-        # Summary Table by Cycle Predictive (Modified)
+        # Summary Table by Cycle Predictive (unchanged)
         st.write("## Summary Table by Cycle Predictive")
         for cycle, cycle_group in df.groupby('Service No.'):
             st.write(f"Cycle: {cycle}")
