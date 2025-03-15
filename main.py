@@ -58,7 +58,7 @@ if uploaded_file is not None:
         def calculate_combined_summary(df):
             summary_table = pd.DataFrame(columns=[ 
                 'Day', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
-                'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'CALL DROP #', 'CALL DROP RATIO #'
+                'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'CALL DROP #', 'NEGATIVE CALL DROP #', 'CALL DROP RATIO #'
             ]) 
 
             # Filter for the remark types: Follow Up, Outgoing, and Predictive
@@ -84,7 +84,12 @@ if uploaded_file is not None:
                                            (~group['Remark By'].str.upper().isin(['SYSTEM']))].shape[0]
                 drop_call_count = predictive_drop_count + manual_drop_count
 
+                # Negative Drop Call Count: Exclude "SYSTEM" in Remark By and count "DROPPED" status
+                negative_drop_count = group[(group['Call Status'] == 'DROPPED') & 
+                                            (~group['Remark By'].str.upper().isin(['SYSTEM']))].shape[0]
+
                 call_drop_ratio = (drop_call_count / connected * 100) if connected != 0 else None
+                negative_call_drop_ratio = (negative_drop_count / connected * 100) if connected != 0 else None
 
                 summary_table = pd.concat([summary_table, pd.DataFrame([{
                     'Day': date,
@@ -97,6 +102,7 @@ if uploaded_file is not None:
                     'PTP ACC': ptp_acc,
                     'PTP RATE': f"{round(ptp_rate)}%" if ptp_rate is not None else None,
                     'CALL DROP #': drop_call_count,
+                    'NEGATIVE CALL DROP #': negative_drop_count,  # Moved column here
                     'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
                 }])], ignore_index=True)
 
@@ -110,7 +116,7 @@ if uploaded_file is not None:
         def calculate_summary(df, remark_type, remark_by=None):
             summary_table = pd.DataFrame(columns=[ 
                 'Day', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
-                'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'CALL DROP #', 'CALL DROP RATIO #'
+                'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'CALL DROP #', 'NEGATIVE CALL DROP #', 'CALL DROP RATIO #'
             ])
 
             for date, group in df.groupby(df['Date'].dt.date):
@@ -144,7 +150,12 @@ if uploaded_file is not None:
                                              (group['Remark Type'] == 'Outgoing') & 
                                              (~group['Remark By'].str.upper().isin(['SYSTEM']))]['Account No.'].count()
 
+                # Negative Drop Call Count logic
+                negative_drop_count = group[(group['Call Status'] == 'DROPPED') & 
+                                            (~group['Remark By'].str.upper().isin(['SYSTEM']))].shape[0]
+
                 call_drop_ratio = (drop_call_count / connected * 100) if connected != 0 else None
+                negative_call_drop_ratio = (negative_drop_count / connected * 100) if connected != 0 else None
 
                 summary_table = pd.concat([summary_table, pd.DataFrame([{
                     'Day': date,
@@ -157,6 +168,7 @@ if uploaded_file is not None:
                     'PTP ACC': ptp_acc,
                     'PTP RATE': f"{round(ptp_rate)}%" if ptp_rate is not None else None,
                     'CALL DROP #': drop_call_count,
+                    'NEGATIVE CALL DROP #': negative_drop_count,  # Moved column here
                     'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
                 }])], ignore_index=True)
 
