@@ -45,7 +45,8 @@ if uploaded_file is not None:
         "Updates when case reassign to another collector", 
         "NDF IN ICS", 
         "FOR PULL OUT (END OF HANDLING PERIOD)", 
-        "END OF HANDLING PERIOD"
+        "END OF HANDLING PERIOD",
+        "1_Cured as of"  # Added new exclusion
     ]
     df = df[~df['Remark'].str.contains('|'.join(excluded_remarks), case=False, na=False)]
 
