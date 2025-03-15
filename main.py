@@ -68,19 +68,16 @@ if uploaded_file is not None:
                 accounts = group[group['Remark'] != 'Broken Promise']['Account No.'].nunique()
                 total_dialed = group[group['Remark'] != 'Broken Promise']['Account No.'].count()
 
-                # Modify connected count logic to check for valid numeric values in 'Talk Time Duration'
-                connected = group[group['Talk Time Duration'].apply(lambda x: isinstance(x, (int, float)) and x > 0)]['Account No.'].count()
+                connected = group[group['Call Status'] == 'CONNECTED']['Account No.'].count()
                 connected_rate = (connected / total_dialed * 100) if total_dialed != 0 else None
-                connected_acc = group[group['Talk Time Duration'].apply(lambda x: isinstance(x, (int, float)) and x > 0)]['Account No.'].nunique()
+                connected_acc = group[group['Call Status'] == 'CONNECTED']['Account No.'].nunique()
 
                 penetration_rate = (total_dialed / accounts * 100) if accounts != 0 else None
 
                 ptp_acc = group[(group['Status'].str.contains('PTP', na=False)) & (group['PTP Amount'] != 0)]['Account No.'].nunique()
                 ptp_rate = (ptp_acc / connected_acc * 100) if connected_acc != 0 else None
 
-                # Drop Call Count: Initialize drop_call_count for all scenarios
-                drop_call_count = 0  # Initialize it here to avoid UnboundLocalError
-                
+                # Drop Call Count: Calculate drop calls for both predictive and manual directly
                 predictive_drop_count = group[(group['Call Status'] == 'DROPPED') & (group['Remark By'] == 'SYSTEM')].shape[0]
                 manual_drop_count = group[(group['Call Status'] == 'DROPPED') & 
                                            (group['Remark Type'] == 'Outgoing') & 
@@ -131,10 +128,11 @@ if uploaded_file is not None:
                                       (group['Remark Type'] == 'Follow Up') & 
                                       (group['Remark By'] == remark_by))]['Account No.'].count()
 
-                # Modify connected count logic to check for valid numeric values in 'Talk Time Duration'
-                connected = group[group['Talk Time Duration'].apply(lambda x: isinstance(x, (int, float)) and x > 0)]['Account No.'].count()
+                connected = group[(group['Call Status'] == 'CONNECTED') & 
+                                  (group['Remark Type'] == remark_type)]['Account No.'].count()
                 connected_rate = (connected / total_dialed * 100) if total_dialed != 0 else None
-                connected_acc = group[group['Talk Time Duration'].apply(lambda x: isinstance(x, (int, float)) and x > 0)]['Account No.'].nunique()
+                connected_acc = group[(group['Call Status'] == 'CONNECTED') & 
+                                      (group['Remark Type'] == remark_type)]['Account No.'].nunique()
 
                 penetration_rate = (total_dialed / accounts * 100) if accounts != 0 else None
 
@@ -144,7 +142,6 @@ if uploaded_file is not None:
                 ptp_rate = (ptp_acc / connected_acc * 100) if connected_acc != 0 else None
 
                 # Drop call count logic for the tables
-                drop_call_count = 0  # Initialize drop_call_count to avoid UnboundLocalError
                 if remark_type == 'Predictive' and remark_by == 'SYSTEM':
                     drop_call_count = group[(group['Call Status'] == 'DROPPED') & (group['Remark By'] == 'SYSTEM')]['Account No.'].count()
                 elif remark_type == 'Outgoing' and remark_by is None:  # For manual, check only non-system agents
