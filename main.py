@@ -181,13 +181,36 @@ if uploaded_file is not None:
 
             return summary_table
 
-        # Display Predictive Summary Table
-        st.write("## Overall Predictive Summary Table")
-        overall_predictive_table = calculate_summary(df, 'Predictive', remark_by='SYSTEM')
-        st.write(overall_predictive_table)
+        # Create columns for side-by-side display
+        col1, col2 = st.columns(2)
 
-        # Display Manual Summary Table
-        st.write("## Overall Manual Summary Table")
-        overall_manual_table = calculate_summary(df, 'Outgoing')
-        overall_manual_table = overall_manual_table.drop(columns=['SYSTEM CALL DROP #'], errors='ignore')
-        st.write(overall_manual_table)
+        # Display Overall Predictive Summary Table (Modified)
+        with col1:
+            st.write("## Overall Predictive Summary Table")
+            overall_predictive_table = calculate_summary(df, 'Predictive', 'SYSTEM')
+            st.write(overall_predictive_table)
+
+        # Display Overall Manual Summary Table (excluding SYSTEM CALL DROP #)
+        with col2:
+            st.write("## Overall Manual Summary Table")
+            overall_manual_table = calculate_summary(df, 'Outgoing')
+            # Remove SYSTEM CALL DROP # column
+            overall_manual_table = overall_manual_table.drop(columns=['SYSTEM CALL DROP #'], errors='ignore')
+            st.write(overall_manual_table)
+
+        # Summary Table by Cycle Predictive (Modified)
+        st.write("## Summary Table by Cycle Predictive")
+        for cycle, cycle_group in df.groupby('Service No.'):
+            st.write(f"Cycle: {cycle}")
+            cycle_group_filtered = cycle_group[cycle_group['Remark Type'].isin(['Follow Up', 'Predictive'])]
+            summary_table = calculate_summary(cycle_group_filtered, 'Predictive', 'SYSTEM')
+            st.write(summary_table)
+
+        # Summary Table by Cycle Manual (excluding SYSTEM CALL DROP #)
+        st.write("## Summary Table by Cycle Manual")
+        for manual_cycle, manual_cycle_group in df.groupby('Service No.'):
+            st.write(f"Cycle: {manual_cycle}")
+            summary_table = calculate_summary(manual_cycle_group, 'Outgoing')
+            # Remove SYSTEM CALL DROP # column
+            summary_table = summary_table.drop(columns=['SYSTEM CALL DROP #'], errors='ignore')
+            st.write(summary_table)
