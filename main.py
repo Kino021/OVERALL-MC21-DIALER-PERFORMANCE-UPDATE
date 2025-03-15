@@ -54,6 +54,10 @@ if uploaded_file is not None:
     if df.empty:
         st.warning("No valid data available after filtering.")
     else:
+        # Debug output to check the filtered data
+        st.write("### Filtered Data Sample")
+        st.write(df.head())  # Show a preview of the data after exclusions
+
         # Calculate Combined Summary Table with Negative Call Drop
         def calculate_combined_summary(df):
             summary_table = pd.DataFrame(columns=[ 
@@ -63,6 +67,8 @@ if uploaded_file is not None:
 
             # Filter for the remark types: Follow Up, Outgoing, and Predictive
             df = df[df['Remark Type'].isin(['Follow Up', 'Outgoing', 'Predictive'])]
+            st.write("### Combined Summary Filtered Data")
+            st.write(df.head())  # Show a preview of the data after applying Remark Type filter
 
             for date, group in df.groupby(df['Date'].dt.date):
                 accounts = group[group['Remark'] != 'Broken Promise']['Account No.'].nunique()
@@ -122,6 +128,10 @@ if uploaded_file is not None:
             df = df[df['Remark Type'] == remark_type]
             if remark_by:
                 df = df[df['Remark By'] == remark_by]
+
+            # Debug output to check filtered data
+            st.write(f"### {remark_type} Filtered Data")
+            st.write(df.head())  # Show a preview of the data after applying Remark Type filter
 
             for date, group in df.groupby(df['Date'].dt.date):
                 accounts = group[(group['Remark Type'] == remark_type)]['Account No.'].nunique()
