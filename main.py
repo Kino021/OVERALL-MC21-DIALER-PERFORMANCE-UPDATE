@@ -112,7 +112,7 @@ if uploaded_file is not None:
         combined_summary_table = calculate_combined_summary(df)
         st.write(combined_summary_table, container_width=True)
 
-        def calculate_summary(df, remark_type, remark_by=None, hide_system_call_drop=False):
+        def calculate_summary(df, remark_type, remark_by=None):
             summary_table = pd.DataFrame(columns=[ 
                 'Day', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
                 'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'SYSTEM CALL DROP #', 'NEGATIVE CALL DROP #', 'CALL DROP RATIO #'
@@ -149,13 +149,13 @@ if uploaded_file is not None:
                                              (group['Remark Type'] == 'Outgoing') & 
                                              (~group['Remark By'].str.upper().isin(['SYSTEM']))]['Account No.'].count()
 
-                # Instead of the previous drop call ratio, we now calculate the dial ratio (Negative Call Drop # / Connected # * 100)
+                call_drop_ratio = (drop_call_count / connected * 100) if connected != 0 else None
+
+                # Negative Call Drop: Count for STATUS 'NEGATIVE CALLOUTS - DROP CALL'
                 negative_call_drop_count = group[(group['Status'].str.contains('NEGATIVE CALLOUTS - DROP CALL', na=False)) & 
                                                   group['Remark Type'].isin([remark_type])].shape[0]
-                
-                dial_ratio = (negative_call_drop_count / connected * 100) if connected != 0 else None
 
-                row_data = {
+                summary_table = pd.concat([summary_table, pd.DataFrame([{
                     'Day': date,
                     'ACCOUNTS': accounts,
                     'TOTAL DIALED': total_dialed,
@@ -165,15 +165,10 @@ if uploaded_file is not None:
                     'CONNECTED ACC': connected_acc,
                     'PTP ACC': ptp_acc,
                     'PTP RATE': f"{round(ptp_rate)}%" if ptp_rate is not None else None,
-                    'NEGATIVE CALL DROP #': negative_call_drop_count,  # SYSTEM CALL DROP # omitted for manual calls
-                    'CALL DROP RATIO #': f"{round(dial_ratio)}%" if dial_ratio is not None else None,  # Updated calculation
-                }
-
-                # Conditionally remove 'SYSTEM CALL DROP #' for manual calls if it exists
-                if hide_system_call_drop and 'SYSTEM CALL DROP #' in row_data:
-                    del row_data['SYSTEM CALL DROP #']
-
-                summary_table = pd.concat([summary_table, pd.DataFrame([row_data])], ignore_index=True)
+                    'SYSTEM CALL DROP #': drop_call_count,  # Changed to UPPERCASE
+                    'NEGATIVE CALL DROP #': negative_call_drop_count,  # Moved after 'SYSTEM CALL DROP #'
+                    'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
+                }])], ignore_index=True)
 
             return summary_table
 
@@ -189,12 +184,20 @@ if uploaded_file is not None:
         # Display Overall Manual Summary Table
         with col2:
             st.write("## Overall Manual Summary Table")
-            overall_manual_table = calculate_summary(df, 'Outgoing', hide_system_call_drop=True)
+            overall_manual_table = calculate_summary(df, 'Outgoing')
             st.write(overall_manual_table)
+
+        # Summary Table by Cycle Predictive (Modified)
+        st.write("## Summary Table by Cycle Predictive")
+        for cycle, cycle_group in df.groupby('Service No.'):
+            st.write(f"Cycle: {cycle}")
+            cycle_group_filtered = cycle_group[cycle_group['Remark Type'].isin(['Follow Up', 'Predictive'])]
+            summary_table = calculate_summary(cycle_group_filtered, 'Predictive', 'SYSTEM')
+            st.write(summary_table)
 
         # Summary Table by Cycle Manual
         st.write("## Summary Table by Cycle Manual")
         for manual_cycle, manual_cycle_group in df.groupby('Service No.'):
             st.write(f"Cycle: {manual_cycle}")
-            summary_table = calculate_summary(manual_cycle_group, 'Outgoing', hide_system_call_drop=True)
+            summary_table = calculate_summary(manual_cycle_group, 'Outgoing')
             st.write(summary_table)
