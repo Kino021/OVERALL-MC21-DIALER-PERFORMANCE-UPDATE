@@ -169,8 +169,8 @@ if uploaded_file is not None:
                     'CALL DROP RATIO #': f"{round(dial_ratio)}%" if dial_ratio is not None else None,  # Updated calculation
                 }
 
-                # Conditionally remove 'SYSTEM CALL DROP #' for manual calls
-                if hide_system_call_drop:
+                # Conditionally remove 'SYSTEM CALL DROP #' for manual calls if it exists
+                if hide_system_call_drop and 'SYSTEM CALL DROP #' in row_data:
                     del row_data['SYSTEM CALL DROP #']
 
                 summary_table = pd.concat([summary_table, pd.DataFrame([row_data])], ignore_index=True)
