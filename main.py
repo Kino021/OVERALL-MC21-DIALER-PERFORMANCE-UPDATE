@@ -112,33 +112,39 @@ if uploaded_file is not None:
         combined_summary_table = calculate_combined_summary(df)
         st.write(combined_summary_table, container_width=True)
 
-        def calculate_summary(df, remark_type, remark_by=None, exclude_system_call_drop=False):
+        def calculate_summary(df, remark_type, remark_by=None):
             summary_table = pd.DataFrame(columns=[ 
                 'Day', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
-                'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'NEGATIVE CALL DROP #', 'CALL DROP RATIO #'
+                'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'SYSTEM CALL DROP #', 'NEGATIVE CALL DROP #', 'CALL DROP RATIO #'
             ])
 
             for date, group in df.groupby(df['Date'].dt.date):
-                accounts = group[(group['Remark Type'] == remark_type) | 
-                                 ((group['Remark'] != 'Broken Promise') & 
-                                  (group['Remark Type'] == 'Follow Up') & 
-                                  (group['Remark By'] == remark_by))]['Account No.'].nunique()
-                total_dialed = group[(group['Remark Type'] == remark_type) | 
-                                     ((group['Remark'] != 'Broken Promise') & 
-                                      (group['Remark Type'] == 'Follow Up') & 
-                                      (group['Remark By'] == remark_by))]['Account No.'].count()
+                # For manual calls (Outgoing), we only count the Remark Type as 'Outgoing'
+                if remark_type == 'Outgoing':
+                    # Filter accounts based on 'Outgoing' Remark Type
+                    accounts = group[group['Remark Type'] == 'Outgoing']['Account No.'].nunique()
+                    total_dialed = group[group['Remark Type'] == 'Outgoing']['Account No.'].count()
+                else:
+                    # Filter accounts based on the passed remark_type for non-manual types
+                    accounts = group[group['Remark Type'] == remark_type]['Account No.'].nunique()
+                    total_dialed = group[group['Remark Type'] == remark_type]['Account No.'].count()
 
-                connected = group[(group['Call Status'] == 'CONNECTED') & 
-                                  (group['Remark Type'] == remark_type)]['Account No.'].count()
+                connected = group[(group['Call Status'] == 'CONNECTED') & (group['Remark Type'] == remark_type)]['Account No.'].count()
                 connected_rate = (connected / total_dialed * 100) if total_dialed != 0 else None
-                connected_acc = group[(group['Call Status'] == 'CONNECTED') & 
-                                      (group['Remark Type'] == remark_type)]['Account No.'].nunique()
+                connected_acc = group[(group['Call Status'] == 'CONNECTED') & (group['Remark Type'] == remark_type)]['Account No.'].nunique()
 
                 penetration_rate = (total_dialed / accounts * 100) if accounts != 0 else None
 
-                ptp_acc = group[(group['Status'].str.contains('PTP', na=False)) & 
-                                (group['PTP Amount'] != 0) & 
-                                (group['Remark Type'] == remark_type)]['Account No.'].nunique()
+                # PTP Calculation: Now, explicitly filter by Remark Type 'Outgoing' for manual calls
+                if remark_type == 'Outgoing':  # Manual calls
+                    ptp_acc = group[(group['Status'].str.contains('PTP', na=False)) & 
+                                    (group['PTP Amount'] != 0) &  # PTP Amount should be non-zero
+                                    (group['Remark Type'] == 'Outgoing')]['Account No.'].nunique()
+                else:
+                    ptp_acc = group[(group['Status'].str.contains('PTP', na=False)) & 
+                                    (group['PTP Amount'] != 0) & 
+                                    (group['Remark Type'] == remark_type)]['Account No.'].nunique()
+
                 ptp_rate = (ptp_acc / connected_acc * 100) if connected_acc != 0 else None
 
                 # Drop call count logic for the tables
@@ -155,36 +161,20 @@ if uploaded_file is not None:
                 negative_call_drop_count = group[(group['Status'].str.contains('NEGATIVE CALLOUTS - DROP CALL', na=False)) & 
                                                   group['Remark Type'].isin([remark_type])].shape[0]
 
-                # Exclude 'SYSTEM CALL DROP #' if it's a manual table
-                if exclude_system_call_drop:
-                    summary_table = pd.concat([summary_table, pd.DataFrame([{
-                        'Day': date,
-                        'ACCOUNTS': accounts,
-                        'TOTAL DIALED': total_dialed,
-                        'PENETRATION RATE (%)': f"{round(penetration_rate)}%" if penetration_rate is not None else None,
-                        'CONNECTED #': connected,
-                        'CONNECTED RATE (%)': f"{round(connected_rate)}%" if connected_rate is not None else None,
-                        'CONNECTED ACC': connected_acc,
-                        'PTP ACC': ptp_acc,
-                        'PTP RATE': f"{round(ptp_rate)}%" if ptp_rate is not None else None,
-                        'NEGATIVE CALL DROP #': negative_call_drop_count,  # Only keep Negative Call Drop
-                        'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
-                    }])], ignore_index=True)
-                else:
-                    summary_table = pd.concat([summary_table, pd.DataFrame([{
-                        'Day': date,
-                        'ACCOUNTS': accounts,
-                        'TOTAL DIALED': total_dialed,
-                        'PENETRATION RATE (%)': f"{round(penetration_rate)}%" if penetration_rate is not None else None,
-                        'CONNECTED #': connected,
-                        'CONNECTED RATE (%)': f"{round(connected_rate)}%" if connected_rate is not None else None,
-                        'CONNECTED ACC': connected_acc,
-                        'PTP ACC': ptp_acc,
-                        'PTP RATE': f"{round(ptp_rate)}%" if ptp_rate is not None else None,
-                        'SYSTEM CALL DROP #': drop_call_count,  # Include SYSTEM CALL DROP
-                        'NEGATIVE CALL DROP #': negative_call_drop_count, 
-                        'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
-                    }])], ignore_index=True)
+                summary_table = pd.concat([summary_table, pd.DataFrame([{
+                    'Day': date,
+                    'ACCOUNTS': accounts,
+                    'TOTAL DIALED': total_dialed,
+                    'PENETRATION RATE (%)': f"{round(penetration_rate)}%" if penetration_rate is not None else None,
+                    'CONNECTED #': connected,
+                    'CONNECTED RATE (%)': f"{round(connected_rate)}%" if connected_rate is not None else None,
+                    'CONNECTED ACC': connected_acc,
+                    'PTP ACC': ptp_acc,
+                    'PTP RATE': f"{round(ptp_rate)}%" if ptp_rate is not None else None,
+                    'SYSTEM CALL DROP #': drop_call_count,  # Changed to UPPERCASE
+                    'NEGATIVE CALL DROP #': negative_call_drop_count,  # Moved after 'SYSTEM CALL DROP #'
+                    'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
+                }])], ignore_index=True)
 
             return summary_table
 
@@ -197,10 +187,10 @@ if uploaded_file is not None:
             overall_predictive_table = calculate_summary(df, 'Predictive', 'SYSTEM')
             st.write(overall_predictive_table)
 
-        # Display Overall Manual Summary Table (Without SYSTEM CALL DROP)
+        # Display Overall Manual Summary Table
         with col2:
             st.write("## Overall Manual Summary Table")
-            overall_manual_table = calculate_summary(df, 'Outgoing', exclude_system_call_drop=True)
+            overall_manual_table = calculate_summary(df, 'Outgoing')
             st.write(overall_manual_table)
 
         # Summary Table by Cycle Predictive (Modified)
@@ -211,9 +201,9 @@ if uploaded_file is not None:
             summary_table = calculate_summary(cycle_group_filtered, 'Predictive', 'SYSTEM')
             st.write(summary_table)
 
-        # Summary Table by Cycle Manual (Without SYSTEM CALL DROP)
+        # Summary Table by Cycle Manual
         st.write("## Summary Table by Cycle Manual")
         for manual_cycle, manual_cycle_group in df.groupby('Service No.'):
             st.write(f"Cycle: {manual_cycle}")
-            summary_table = calculate_summary(manual_cycle_group, 'Outgoing', exclude_system_call_drop=True)
+            summary_table = calculate_summary(manual_cycle_group, 'Outgoing')
             st.write(summary_table)
