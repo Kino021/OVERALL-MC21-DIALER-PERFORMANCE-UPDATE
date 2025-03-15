@@ -188,7 +188,7 @@ if uploaded_file is not None:
             overall_predictive_table = calculate_summary(df, 'Predictive', 'SYSTEM')
             st.write(overall_predictive_table)
 
-        # Display Overall Manual Summary Table
+        # Display Overall Manual Summary Table (Without Call Drop Column)
         with col2:
             st.write("## Overall Manual Summary Table")
             overall_manual_table = calculate_summary(df, 'Outgoing', include_call_drop=False)
@@ -202,7 +202,7 @@ if uploaded_file is not None:
             summary_table = calculate_summary(cycle_group_filtered, 'Predictive', 'SYSTEM')
             st.write(summary_table)
 
-        # Summary Table by Cycle Manual (Modified)
+        # Summary Table by Cycle Manual (Without Call Drop Column)
         st.write("## Summary Table by Cycle Manual")
         for manual_cycle, manual_cycle_group in df.groupby('Service No.'):
             st.write(f"Cycle: {manual_cycle}")
