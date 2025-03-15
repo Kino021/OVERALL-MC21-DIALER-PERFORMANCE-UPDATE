@@ -24,10 +24,10 @@ st.title('Daily Remark Summary')
 @st.cache_data
 def load_data(uploaded_file):
     df = pd.read_excel(uploaded_file)
-    
+
     # Convert 'Date' to datetime if it isn't already
     df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
-    
+
     return df
 
 uploaded_file = st.sidebar.file_uploader("Upload Daily Remark File", type="xlsx")
@@ -37,7 +37,7 @@ if uploaded_file is not None:
 
     # Exclude rows where STATUS contains 'BP' (Broken Promise) or 'ABORT'
     df = df[~df['Status'].str.contains('BP|ABORT', na=False)]
-    
+
     # Exclude rows where REMARK contains certain keywords or phrases
     excluded_remarks = [
         "NEW", 
@@ -54,10 +54,6 @@ if uploaded_file is not None:
     if df.empty:
         st.warning("No valid data available after filtering.")
     else:
-        # Debug output to check the filtered data
-        st.write("### Filtered Data Sample")
-        st.write(df.head())  # Show a preview of the data after exclusions
-
         # Calculate Combined Summary Table with Negative Call Drop
         def calculate_combined_summary(df):
             summary_table = pd.DataFrame(columns=[ 
@@ -67,8 +63,6 @@ if uploaded_file is not None:
 
             # Filter for the remark types: Follow Up, Outgoing, and Predictive
             df = df[df['Remark Type'].isin(['Follow Up', 'Outgoing', 'Predictive'])]
-            st.write("### Combined Summary Filtered Data")
-            st.write(df.head())  # Show a preview of the data after applying Remark Type filter
 
             for date, group in df.groupby(df['Date'].dt.date):
                 accounts = group[group['Remark'] != 'Broken Promise']['Account No.'].nunique()
@@ -124,18 +118,15 @@ if uploaded_file is not None:
                 'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'SYSTEM CALL DROP #', 'NEGATIVE CALL DROP #', 'CALL DROP RATIO #'
             ])
 
-            # Filter the data based on remark_type and remark_by
-            df = df[df['Remark Type'] == remark_type]
-            if remark_by:
-                df = df[df['Remark By'] == remark_by]
-
-            # Debug output to check filtered data
-            st.write(f"### {remark_type} Filtered Data")
-            st.write(df.head())  # Show a preview of the data after applying Remark Type filter
-
             for date, group in df.groupby(df['Date'].dt.date):
-                accounts = group[(group['Remark Type'] == remark_type)]['Account No.'].nunique()
-                total_dialed = group[(group['Remark Type'] == remark_type)]['Account No.'].count()
+                accounts = group[(group['Remark Type'] == remark_type) | 
+                                 ((group['Remark'] != 'Broken Promise') & 
+                                  (group['Remark Type'] == 'Follow Up') & 
+                                  (group['Remark By'] == remark_by))]['Account No.'].nunique()
+                total_dialed = group[(group['Remark Type'] == remark_type) | 
+                                     ((group['Remark'] != 'Broken Promise') & 
+                                      (group['Remark Type'] == 'Follow Up') & 
+                                      (group['Remark By'] == remark_by))]['Account No.'].count()
 
                 connected = group[(group['Call Status'] == 'CONNECTED') & 
                                   (group['Remark Type'] == remark_type)]['Account No.'].count()
@@ -203,3 +194,20 @@ if uploaded_file is not None:
             # Remove SYSTEM CALL DROP # column
             overall_manual_table = overall_manual_table.drop(columns=['SYSTEM CALL DROP #'], errors='ignore')
             st.write(overall_manual_table)
+
+        # Summary Table by Cycle Predictive (Modified)
+        st.write("## Summary Table by Cycle Predictive")
+        for cycle, cycle_group in df.groupby('Service No.'):
+            st.write(f"Cycle: {cycle}")
+            cycle_group_filtered = cycle_group[cycle_group['Remark Type'].isin(['Follow Up', 'Predictive'])]
+            summary_table = calculate_summary(cycle_group_filtered, 'Predictive', 'SYSTEM')
+            st.write(summary_table)
+
+        # Summary Table by Cycle Manual (excluding SYSTEM CALL DROP #)
+        st.write("## Summary Table by Cycle Manual")
+        for manual_cycle, manual_cycle_group in df.groupby('Service No.'):
+            st.write(f"Cycle: {manual_cycle}")
+            summary_table = calculate_summary(manual_cycle_group, 'Outgoing')
+            # Remove SYSTEM CALL DROP # column
+            summary_table = summary_table.drop(columns=['SYSTEM CALL DROP #'], errors='ignore')
+            st.write(summary_table)
