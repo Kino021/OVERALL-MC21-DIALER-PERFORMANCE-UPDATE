@@ -155,6 +155,9 @@ if uploaded_file is not None:
                 negative_call_drop_count = group[(group['Status'].str.contains('NEGATIVE CALLOUTS - DROP CALL', na=False)) & 
                                                   group['Remark Type'].isin([remark_type])].shape[0]
 
+                # Modified: Change SYSTEM CALL DROP # to NEGATIVE CALL DROP #
+                system_call_drop_count = 0  # No longer used in this case
+
                 summary_table = pd.concat([summary_table, pd.DataFrame([{
                     'Day': date,
                     'ACCOUNTS': accounts,
@@ -165,9 +168,9 @@ if uploaded_file is not None:
                     'CONNECTED ACC': connected_acc,
                     'PTP ACC': ptp_acc,
                     'PTP RATE': f"{round(ptp_rate)}%" if ptp_rate is not None else None,
-                    'SYSTEM CALL DROP #': drop_call_count,  # Changed to UPPERCASE
-                    'NEGATIVE CALL DROP #': negative_call_drop_count,  # Moved after 'SYSTEM CALL DROP #'
-                    'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
+                    'SYSTEM CALL DROP #': system_call_drop_count,  # Set to 0 as we are now using negative call drop
+                    'NEGATIVE CALL DROP #': negative_call_drop_count,  # Keep Negative Call Drop Count
+                    'CALL DROP RATIO #': f"{round(negative_call_drop_count / connected * 100)}%" if connected != 0 else None,  # Change to negative call drop ratio
                 }])], ignore_index=True)
 
             return summary_table
@@ -181,7 +184,7 @@ if uploaded_file is not None:
             overall_predictive_table = calculate_summary(df, 'Predictive', 'SYSTEM')
             st.write(overall_predictive_table)
 
-        # Display Overall Manual Summary Table
+        # Display Overall Manual Summary Table (Modified)
         with col2:
             st.write("## Overall Manual Summary Table")
             overall_manual_table = calculate_summary(df, 'Outgoing')
@@ -195,7 +198,7 @@ if uploaded_file is not None:
             summary_table = calculate_summary(cycle_group_filtered, 'Predictive', 'SYSTEM')
             st.write(summary_table)
 
-        # Summary Table by Cycle Manual
+        # Summary Table by Cycle Manual (Modified)
         st.write("## Summary Table by Cycle Manual")
         for manual_cycle, manual_cycle_group in df.groupby('Service No.'):
             st.write(f"Cycle: {manual_cycle}")
