@@ -58,7 +58,7 @@ if uploaded_file is not None:
         def calculate_combined_summary(df):
             summary_table = pd.DataFrame(columns=[ 
                 'Day', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
-                'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'System Call Drop #', 'CALL DROP RATIO #', 'NEGATIVE CALL DROP #'
+                'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'System Call Drop #', 'NEGATIVE CALL DROP #', 'CALL DROP RATIO #'
             ]) 
 
             # Filter for the remark types: Follow Up, Outgoing, and Predictive
@@ -101,8 +101,8 @@ if uploaded_file is not None:
                     'PTP ACC': ptp_acc,
                     'PTP RATE': f"{round(ptp_rate)}%" if ptp_rate is not None else None,
                     'System Call Drop #': drop_call_count,  # Changed from 'CALL DROP #' to 'System Call Drop #'
+                    'NEGATIVE CALL DROP #': negative_call_drop_count,  # Moved after 'System Call Drop #'
                     'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
-                    'NEGATIVE CALL DROP #': negative_call_drop_count,
                 }])], ignore_index=True)
 
             return summary_table
@@ -115,7 +115,7 @@ if uploaded_file is not None:
         def calculate_summary(df, remark_type, remark_by=None):
             summary_table = pd.DataFrame(columns=[ 
                 'Day', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
-                'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'System Call Drop #', 'CALL DROP RATIO #', 'NEGATIVE CALL DROP #'
+                'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'System Call Drop #', 'NEGATIVE CALL DROP #', 'CALL DROP RATIO #'
             ])
 
             for date, group in df.groupby(df['Date'].dt.date):
@@ -166,8 +166,8 @@ if uploaded_file is not None:
                     'PTP ACC': ptp_acc,
                     'PTP RATE': f"{round(ptp_rate)}%" if ptp_rate is not None else None,
                     'System Call Drop #': drop_call_count,  # Changed from 'CALL DROP #' to 'System Call Drop #'
+                    'NEGATIVE CALL DROP #': negative_call_drop_count,  # Moved after 'System Call Drop #'
                     'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
-                    'NEGATIVE CALL DROP #': negative_call_drop_count,
                 }])], ignore_index=True)
 
             return summary_table
