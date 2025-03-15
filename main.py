@@ -165,6 +165,9 @@ if uploaded_file is not None:
                 if remark_type == 'Outgoing':
                     drop_call_count = 0  # Set SYSTEM CALL DROP # to 0 for Manual Calls
 
+                # Update CALL DROP RATIO to be NEGATIVE CALL DROP # / CONNECTED # * 100
+                call_drop_ratio = (negative_call_drop_count / connected * 100) if connected != 0 else None
+
                 summary_table = pd.concat([summary_table, pd.DataFrame([{
                     'Day': date,
                     'ACCOUNTS': accounts,
