@@ -84,11 +84,12 @@ if uploaded_file is not None:
                                            (~group['Remark By'].str.upper().isin(['SYSTEM']))].shape[0]
                 drop_call_count = predictive_drop_count + manual_drop_count
 
-                call_drop_ratio = (drop_call_count / connected * 100) if connected != 0 else None
-
                 # Negative Call Drop: Count for STATUS 'NEGATIVE CALLOUTS - DROP CALL'
                 negative_call_drop_count = group[(group['Status'].str.contains('NEGATIVE CALLOUTS - DROP CALL', na=False)) & 
                                                   group['Remark Type'].isin(['Follow Up', 'Outgoing', 'Predictive'])].shape[0]
+
+                # Calculate the CALL DROP RATIO using the formula
+                call_drop_ratio = (connected / negative_call_drop_count * 100) if negative_call_drop_count != 0 else None
 
                 summary_table = pd.concat([summary_table, pd.DataFrame([{
                     'Day': date,
@@ -149,11 +150,12 @@ if uploaded_file is not None:
                                              (group['Remark Type'] == 'Outgoing') & 
                                              (~group['Remark By'].str.upper().isin(['SYSTEM']))]['Account No.'].count()
 
-                call_drop_ratio = (drop_call_count / connected * 100) if connected != 0 else None
-
                 # Negative Call Drop: Count for STATUS 'NEGATIVE CALLOUTS - DROP CALL'
                 negative_call_drop_count = group[(group['Status'].str.contains('NEGATIVE CALLOUTS - DROP CALL', na=False)) & 
                                                   group['Remark Type'].isin([remark_type])].shape[0]
+
+                # Calculate the CALL DROP RATIO using the formula
+                call_drop_ratio = (connected / negative_call_drop_count * 100) if negative_call_drop_count != 0 else None
 
                 # For manual calls, remove SYSTEM CALL DROP # from the columns
                 if remark_type == 'Outgoing':
@@ -171,9 +173,9 @@ if uploaded_file is not None:
                     'CONNECTED ACC': connected_acc,
                     'PTP ACC': ptp_acc,
                     'PTP RATE': f"{round(ptp_rate)}%" if ptp_rate is not None else None,
-                    'SYSTEM CALL DROP #': system_call_drop_count,  # Set to None for manual
-                    'NEGATIVE CALL DROP #': negative_call_drop_count,  # Moved after 'SYSTEM CALL DROP #'
-                    'CALL DROP RATIO #': f"{round(negative_call_drop_count)}%" if negative_call_drop_count is not None else None,  # Changed this line to NEGATIVE CALL DROP
+                    'SYSTEM CALL DROP #': system_call_drop_count,  # Removed for manual
+                    'NEGATIVE CALL DROP #': negative_call_drop_count,
+                    'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
                 }])], ignore_index=True)
 
             return summary_table
@@ -194,7 +196,7 @@ if uploaded_file is not None:
             # Remove SYSTEM CALL DROP # column
             overall_manual_table = overall_manual_table.drop(columns=['SYSTEM CALL DROP #'], errors='ignore')
             # Adjusted the column for Negative Call Drop Ratio
-            overall_manual_table['CALL DROP RATIO #'] = overall_manual_table['NEGATIVE CALL DROP #']
+            overall_manual_table['CALL DROP RATIO #'] = overall_manual_table['CONNECTED #'] / overall_manual_table['NEGATIVE CALL DROP #'] * 100
             st.write(overall_manual_table)
 
         # Summary Table by Cycle Predictive (Modified)
@@ -213,5 +215,5 @@ if uploaded_file is not None:
             # Remove SYSTEM CALL DROP # column
             summary_table = summary_table.drop(columns=['SYSTEM CALL DROP #'], errors='ignore')
             # Adjusted the column for Negative Call Drop Ratio
-            summary_table['CALL DROP RATIO #'] = summary_table['NEGATIVE CALL DROP #']
+            summary_table['CALL DROP RATIO #'] = summary_table['CONNECTED #'] / summary_table['NEGATIVE CALL DROP #'] * 100
             st.write(summary_table)
