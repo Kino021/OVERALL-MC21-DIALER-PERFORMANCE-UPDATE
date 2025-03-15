@@ -169,7 +169,7 @@ if uploaded_file is not None:
         # Display Overall Predictive + Follow Up Summary Table
         with col1:
             st.write("## Overall Predictive + Follow Up Summary Table")  
-            overall_predictive_table = calculate_summary(df, ['Follow Up', 'Predictive'])
+            overall_predictive_table = calculate_combined_summary(df)
             st.write(overall_predictive_table)
 
             st.write("## Per Cycle Predictive + Follow Up Summary Table")  
@@ -179,7 +179,7 @@ if uploaded_file is not None:
         # Display Overall Manual Summary Table
         with col2:
             st.write("## Overall Manual Summary Table")
-            overall_manual_table = calculate_summary(df, ['Outgoing'])
+            overall_manual_table = calculate_combined_summary(df)
             overall_manual_table = overall_manual_table.drop(columns=['SYSTEM CALL DROP #'], errors='ignore')
             st.write(overall_manual_table)
 
