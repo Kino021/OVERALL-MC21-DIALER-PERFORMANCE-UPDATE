@@ -118,15 +118,14 @@ if uploaded_file is not None:
                 'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'SYSTEM CALL DROP #', 'NEGATIVE CALL DROP #', 'CALL DROP RATIO #'
             ])
 
+            # Filter the data based on remark_type and remark_by
+            df = df[df['Remark Type'] == remark_type]
+            if remark_by:
+                df = df[df['Remark By'] == remark_by]
+
             for date, group in df.groupby(df['Date'].dt.date):
-                accounts = group[(group['Remark Type'] == remark_type) | 
-                                 ((group['Remark'] != 'Broken Promise') & 
-                                  (group['Remark Type'] == 'Follow Up') & 
-                                  (group['Remark By'] == remark_by))]['Account No.'].nunique()
-                total_dialed = group[(group['Remark Type'] == remark_type) | 
-                                     ((group['Remark'] != 'Broken Promise') & 
-                                      (group['Remark Type'] == 'Follow Up') & 
-                                      (group['Remark By'] == remark_by))]['Account No.'].count()
+                accounts = group[(group['Remark Type'] == remark_type)]['Account No.'].nunique()
+                total_dialed = group[(group['Remark Type'] == remark_type)]['Account No.'].count()
 
                 connected = group[(group['Call Status'] == 'CONNECTED') & 
                                   (group['Remark Type'] == remark_type)]['Account No.'].count()
