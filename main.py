@@ -53,50 +53,6 @@ if uploaded_file is not None:
     if df.empty:
         st.warning("No valid data available after filtering.")
     else:
-        # Overall Combined Summary Table
-        def calculate_combined_summary(df):
-            summary_table = pd.DataFrame(columns=[ 
-                'Day', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
-                'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'NEGATIVE CALL DROP #', 
-                'SYSTEM DROP', 'CALL DROP RATIO #'
-            ]) 
-
-            for date, group in df.groupby(df['Date'].dt.date):
-                accounts = group[group['Remark Type'].isin(['Predictive', 'Follow Up', 'Outgoing'])]['Account No.'].nunique()
-                total_dialed = group[group['Remark Type'].isin(['Predictive', 'Follow Up', 'Outgoing'])]['Account No.'].count()
-                connected = group[group['Call Status'] == 'CONNECTED']['Account No.'].nunique()
-                penetration_rate = (total_dialed / accounts * 100) if accounts != 0 else None
-                connected_acc = group[group['Call Status'] == 'CONNECTED']['Account No.'].count()
-                connected_rate = (connected_acc / total_dialed * 100) if total_dialed != 0 else None
-                ptp_acc = group[(group['Status'].str.contains('PTP', na=False)) & (group['PTP Amount'] != 0)]['Account No.'].nunique()
-                ptp_rate = (ptp_acc / connected * 100) if connected != 0 else None
-                system_drop = group[(group['Status'].str.contains('DROPPED', na=False)) & (group['Remark By'] == 'SYSTEM')]['Account No.'].count()
-                call_drop_count = group[(group['Status'].str.contains('NEGATIVE CALLOUTS - DROP CALL', na=False)) & 
-                                        (~group['Remark By'].str.upper().isin(['SYSTEM']))]['Account No.'].count()
-                call_drop_ratio = (system_drop / connected_acc * 100) if connected_acc != 0 else None
-
-                summary_table = pd.concat([summary_table, pd.DataFrame([{
-                    'Day': date,
-                    'ACCOUNTS': accounts,
-                    'TOTAL DIALED': total_dialed,
-                    'PENETRATION RATE (%)': f"{round(penetration_rate)}%" if penetration_rate is not None else None,
-                    'CONNECTED #': connected,
-                    'CONNECTED RATE (%)': f"{round(connected_rate)}%" if connected_rate is not None else None,
-                    'CONNECTED ACC': connected_acc,
-                    'PTP ACC': ptp_acc,
-                    'PTP RATE': f"{round(ptp_rate)}%" if ptp_rate is not None else None,
-                    'NEGATIVE CALL DROP #': call_drop_count,
-                    'SYSTEM DROP': system_drop,
-                    'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
-                }])], ignore_index=True)
-
-            return summary_table
-
-        # Display Overall Combined Summary Table
-        st.write("## Overall Combined Summary Table")
-        combined_summary_table = calculate_combined_summary(df)
-        st.write(combined_summary_table)
-
         # Per Cycle Predictive Summary Table (Sum by Date for each Cycle)
         def calculate_per_cycle_predictive_summary(df):
             summary_table = pd.DataFrame(columns=[ 
@@ -108,7 +64,7 @@ if uploaded_file is not None:
             df_filtered = df[df['Remark Type'].isin(['Predictive', 'Follow Up'])]
 
             for cycle, group in df_filtered.groupby('Service No.'):
-                # Sum results for each cycle, ensuring multiple dates are aggregated
+                # Aggregate by Date (Remove Time)
                 aggregated_data = group.groupby('Date').agg(
                     ACCOUNTS=('Account No.', 'nunique'),
                     TOTAL_DIALED=('Account No.', 'count'),
@@ -118,6 +74,9 @@ if uploaded_file is not None:
                     NEGATIVE_CALL_DROP=('Remark By', lambda x: x.str.contains('NEGATIVE CALLOUTS - DROP CALL').sum()),
                     SYSTEM_DROP=('Remark By', lambda x: x.str.contains('SYSTEM').sum())
                 ).reset_index()
+
+                # Format Date to display only the date part
+                aggregated_data['Date'] = aggregated_data['Date'].dt.date
 
                 # Calculate derived columns
                 for idx, row in aggregated_data.iterrows():
@@ -160,7 +119,7 @@ if uploaded_file is not None:
             df_filtered = df[df['Remark Type'] == 'Outgoing']
 
             for cycle, group in df_filtered.groupby('Service No.'):
-                # Sum results for each cycle, ensuring multiple dates are aggregated
+                # Aggregate by Date (Remove Time)
                 aggregated_data = group.groupby('Date').agg(
                     ACCOUNTS=('Account No.', 'nunique'),
                     TOTAL_DIALED=('Account No.', 'count'),
@@ -169,6 +128,9 @@ if uploaded_file is not None:
                     PTP_ACC=('Status', lambda x: x.str.contains('PTP').sum()),
                     NEGATIVE_CALL_DROP=('Remark By', lambda x: x.str.contains('NEGATIVE CALLOUTS - DROP CALL').sum())
                 ).reset_index()
+
+                # Format Date to display only the date part
+                aggregated_data['Date'] = aggregated_data['Date'].dt.date
 
                 # Calculate derived columns
                 for idx, row in aggregated_data.iterrows():
