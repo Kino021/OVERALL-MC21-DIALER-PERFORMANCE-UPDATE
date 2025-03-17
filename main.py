@@ -70,7 +70,7 @@ if uploaded_file is not None:
 
         # Initialize an empty DataFrame for the summary table by collector
         collector_summary = pd.DataFrame(columns=[ 
-            'Day', 'Collector', 'Campaign', 'Total Manual Calls', 'Total Connected', 'Total PTP', 'Total RPC', 'PTP Amount', 'Balance Amount', 'Talk Time (HH:MM:SS)', 'Dropped Calls Count'
+            'Day', 'Collector', 'Campaign', 'Total Manual Calls', 'Total Connected', 'Total PTP', 'Total RPC', 'PTP Amount', 'Balance Amount', 'Talk Time (HH:MM:SS)', 'System Call Drop'
         ])
 
         # Group by 'Date' and 'Remark By' (Collector)
@@ -94,6 +94,12 @@ if uploaded_file is not None:
             # **Filter only OUTGOING calls for Total Manual Calls**
             total_manual_calls = collector_group[collector_group['Remark Type'].str.contains('OUTGOING', case=False, na=False)].shape[0]
 
+            # Calculate System Call Drop count where Status contains 'DROPPED' and Remark Type is 'Follow Up' or 'Predictive'
+            system_call_drop = collector_group[
+                (collector_group['Status'].str.contains('DROPPED', na=False)) & 
+                (collector_group['Remark Type'].isin(['Follow Up', 'Predictive']))
+            ].shape[0]
+
             collector_summary = pd.concat([collector_summary, pd.DataFrame([{
                 'Day': date,
                 'Collector': collector,
@@ -105,21 +111,35 @@ if uploaded_file is not None:
                 'PTP Amount': ptp_amount,
                 'Balance Amount': balance_amount,
                 'Talk Time (HH:MM:SS)': formatted_talk_time,
-                'Dropped Calls Count': 0,  # Placeholder for dropped call count
+                'System Call Drop': system_call_drop
             }])], ignore_index=True)
 
-        # Now, let's add the dropped call count based on specific conditions (system dropped and follow-up/predictive remarks)
-        dropped_calls_mask = (df['Status'].str.contains('dropped', case=False, na=False)) & \
-                             (df['Remark Type'].str.contains('follow up|predictive', case=False, na=False))
+        collector_summary[['PTP Amount', 'Balance Amount']] = collector_summary[['PTP Amount', 'Balance Amount']].round(2)
 
-        # Get the count of dropped calls for each group based on date and collector
-        dropped_calls_summary = df[dropped_calls_mask].groupby([df['Date'].dt.date, 'Remark By']).size().reset_index(name='Dropped Calls Count')
+        # Calculate total values for the summary table
+        total_row = collector_summary[['Total Manual Calls', 'Total Connected', 'Total PTP', 'Total RPC', 'PTP Amount', 'Balance Amount', 'System Call Drop']].sum()
 
-        # Merge this summary with the existing collector summary
-        collector_summary_final = pd.merge(collector_summary, dropped_calls_summary, how='left', on=['Day', 'Collector'])
+        # Calculate the total talk time separately
+        total_talk_time_seconds = collector_summary['Talk Time (HH:MM:SS)'].apply(lambda x: pd.to_timedelta(x).total_seconds()).sum()
+        total_talk_time_formatted = str(pd.to_timedelta(total_talk_time_seconds, unit='s')).split()[2]
 
-        # Optional: Fill NaN values in the "Dropped Calls Count" column with 0
-        collector_summary_final['Dropped Calls Count'] = collector_summary_final['Dropped Calls Count'].fillna(0).astype(int)
+        # Add total row at the end
+        total_row['Day'] = 'Total'
+        total_row['Collector'] = ''
+        total_row['Campaign'] = ''
+        total_row['Talk Time (HH:MM:SS)'] = total_talk_time_formatted
+        
+        # Save the "Total" row separately for later
+        total_row_df = total_row.to_frame().T
+
+        # Remove the "Total" row from the summary before sorting
+        collector_summary_without_total = collector_summary[collector_summary['Day'] != 'Total']
+
+        # Sort by 'Total PTP' in descending order, excluding the "Total" row
+        collector_summary_sorted = collector_summary_without_total.sort_values(by='Total PTP', ascending=False, na_position='last')
+
+        # Append the "Total" row at the bottom after sorting
+        collector_summary_final = pd.concat([collector_summary_sorted, total_row_df], ignore_index=True)
 
         # Formatting the columns to add comma style for amounts
         collector_summary_final['PTP Amount'] = collector_summary_final['PTP Amount'].apply(lambda x: f"{x:,.2f}")
@@ -143,10 +163,10 @@ if uploaded_file is not None:
 
         excel_data = to_excel(collector_summary_final)
 
-        # Download button for Excel file with dropped calls count
+        # Download button for Excel file
         st.download_button(
-            label="Download Updated Excel File with Dropped Calls",
+            label="Download Excel File",
             data=excel_data,
-            file_name="collector_summary_with_dropped_calls.xlsx",
+            file_name="collector_summary.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
