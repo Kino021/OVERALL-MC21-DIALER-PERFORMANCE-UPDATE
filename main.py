@@ -253,7 +253,7 @@ if uploaded_file is not None:
         # Per Cycle Predictive Summary Table
         def calculate_per_cycle_predictive_summary(df):
             summary_table = pd.DataFrame(columns=[ 
-                'Cycle', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
+                'Cycle', 'Date', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
                 'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'CALL DROP #', 
                 'SYSTEM DROP', 'CALL DROP RATIO #'
             ]) 
@@ -298,6 +298,7 @@ if uploaded_file is not None:
 
                 summary_table = pd.concat([summary_table, pd.DataFrame([{
                     'Cycle': cycle,
+                    'Date': group['Date'].max(),  # Get the latest date for each cycle
                     'ACCOUNTS': accounts,
                     'TOTAL DIALED': total_dialed,
                     'PENETRATION RATE (%)': f"{round(penetration_rate)}%" if penetration_rate is not None else None,
@@ -321,7 +322,7 @@ if uploaded_file is not None:
         # Per Cycle Manual Summary Table
         def calculate_per_cycle_manual_summary(df):
             summary_table = pd.DataFrame(columns=[ 
-                'Cycle', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
+                'Cycle', 'Date', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
                 'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'CALL DROP #', 
                 'CALL DROP RATIO #'
             ]) 
@@ -363,6 +364,7 @@ if uploaded_file is not None:
 
                 summary_table = pd.concat([summary_table, pd.DataFrame([{
                     'Cycle': cycle,
+                    'Date': group['Date'].max(),  # Get the latest date for each cycle
                     'ACCOUNTS': accounts,
                     'TOTAL DIALED': total_dialed,
                     'PENETRATION RATE (%)': f"{round(penetration_rate)}%" if penetration_rate is not None else None,
