@@ -57,7 +57,7 @@ if uploaded_file is not None:
         def calculate_combined_summary(df):
             summary_table = pd.DataFrame(columns=[ 
                 'Day', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
-                'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'NEGATIVE CALL DROP #', 
+                'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'CALL DROP #', 
                 'SYSTEM DROP', 'CALL DROP RATIO #'
             ]) 
 
@@ -89,7 +89,7 @@ if uploaded_file is not None:
                 # System Drop: Count rows where Status contains DROPPED and Remark By is SYSTEM
                 system_drop = group[(group['Status'].str.contains('DROPPED', na=False)) & (group['Remark By'] == 'SYSTEM')]['Account No.'].count()
 
-                # Negative Call Drop: Count rows where Status contains NEGATIVE CALLOUTS - DROP CALL and Remark By is not SYSTEM
+                # Call Drop: Count rows where Status contains NEGATIVE CALLOUTS - DROP CALL and Remark By is not SYSTEM
                 call_drop_count = group[(group['Status'].str.contains('NEGATIVE CALLOUTS - DROP CALL', na=False)) & 
                                         (~group['Remark By'].str.upper().isin(['SYSTEM']))]['Account No.'].count()
 
@@ -106,7 +106,7 @@ if uploaded_file is not None:
                     'CONNECTED ACC': connected_acc,
                     'PTP ACC': ptp_acc,
                     'PTP RATE': f"{round(ptp_rate)}%" if ptp_rate is not None else None,
-                    'NEGATIVE CALL DROP #': call_drop_count,
+                    'CALL DROP #': call_drop_count,
                     'SYSTEM DROP': system_drop,
                     'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
                 }])], ignore_index=True)
@@ -122,7 +122,7 @@ if uploaded_file is not None:
         def calculate_predictive_summary(df):
             summary_table = pd.DataFrame(columns=[ 
                 'Day', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
-                'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'NEGATIVE CALL DROP #', 
+                'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'CALL DROP #', 
                 'SYSTEM DROP', 'CALL DROP RATIO #'
             ]) 
 
@@ -157,7 +157,7 @@ if uploaded_file is not None:
                 # System Drop: Count rows where Status contains DROPPED and Remark By is SYSTEM
                 system_drop = group[(group['Status'].str.contains('DROPPED', na=False)) & (group['Remark By'] == 'SYSTEM')]['Account No.'].count()
 
-                # Negative Call Drop: Count rows where Status contains NEGATIVE CALLOUTS - DROP CALL and Remark By is not SYSTEM
+                # Call Drop: Count rows where Status contains NEGATIVE CALLOUTS - DROP CALL and Remark By is not SYSTEM
                 call_drop_count = group[(group['Status'].str.contains('NEGATIVE CALLOUTS - DROP CALL', na=False)) & 
                                         (~group['Remark By'].str.upper().isin(['SYSTEM']))]['Account No.'].count()
 
@@ -174,7 +174,7 @@ if uploaded_file is not None:
                     'CONNECTED ACC': connected_acc,
                     'PTP ACC': ptp_acc,
                     'PTP RATE': f"{round(ptp_rate)}%" if ptp_rate is not None else None,
-                    'NEGATIVE CALL DROP #': call_drop_count,
+                    'CALL DROP #': call_drop_count,
                     'SYSTEM DROP': system_drop,
                     'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
                 }])], ignore_index=True)
@@ -190,7 +190,7 @@ if uploaded_file is not None:
         def calculate_manual_summary(df):
             summary_table = pd.DataFrame(columns=[ 
                 'Day', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
-                'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'NEGATIVE CALL DROP #', 
+                'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'CALL DROP #', 
                 'CALL DROP RATIO #'
             ]) 
 
@@ -222,7 +222,7 @@ if uploaded_file is not None:
                 # PTP Rate: PTP ACC / Connected # * 100
                 ptp_rate = (ptp_acc / connected * 100) if connected != 0 else None
 
-                # Negative Call Drop: Count rows where Status contains NEGATIVE CALLOUTS - DROP CALL and Remark By is not SYSTEM
+                # Call Drop: Count rows where Status contains NEGATIVE CALLOUTS - DROP CALL and Remark By is not SYSTEM
                 call_drop_count = group[(group['Status'].str.contains('NEGATIVE CALLOUTS - DROP CALL', na=False)) & 
                                         (~group['Remark By'].str.upper().isin(['SYSTEM']))]['Account No.'].count()
 
@@ -239,7 +239,7 @@ if uploaded_file is not None:
                     'CONNECTED ACC': connected_acc,
                     'PTP ACC': ptp_acc,
                     'PTP RATE': f"{round(ptp_rate)}%" if ptp_rate is not None else None,
-                    'NEGATIVE CALL DROP #': call_drop_count,
+                    'CALL DROP #': call_drop_count,
                     'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
                 }])], ignore_index=True)
 
@@ -254,7 +254,7 @@ if uploaded_file is not None:
         def calculate_per_cycle_predictive_summary(df):
             summary_table = pd.DataFrame(columns=[ 
                 'Cycle', 'Date', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
-                'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'NEGATIVE CALL DROP #', 
+                'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'CALL DROP #', 
                 'SYSTEM DROP', 'CALL DROP RATIO #'
             ]) 
 
@@ -289,7 +289,7 @@ if uploaded_file is not None:
                 # System Drop: Count rows where Status contains DROPPED and Remark By is SYSTEM
                 system_drop = group[(group['Status'].str.contains('DROPPED', na=False)) & (group['Remark By'] == 'SYSTEM')]['Account No.'].count()
 
-                # Negative Call Drop: Count rows where Status contains NEGATIVE CALLOUTS - DROP CALL and Remark By is not SYSTEM
+                # Call Drop: Count rows where Status contains NEGATIVE CALLOUTS - DROP CALL and Remark By is not SYSTEM
                 call_drop_count = group[(group['Status'].str.contains('NEGATIVE CALLOUTS - DROP CALL', na=False)) & 
                                         (~group['Remark By'].str.upper().isin(['SYSTEM']))]['Account No.'].count()
 
@@ -307,7 +307,7 @@ if uploaded_file is not None:
                     'CONNECTED ACC': connected_acc,
                     'PTP ACC': ptp_acc,
                     'PTP RATE': f"{round(ptp_rate)}%" if ptp_rate is not None else None,
-                    'NEGATIVE CALL DROP #': call_drop_count,
+                    'CALL DROP #': call_drop_count,
                     'SYSTEM DROP': system_drop,
                     'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
                 }])], ignore_index=True)
@@ -323,7 +323,7 @@ if uploaded_file is not None:
         def calculate_per_cycle_manual_summary(df):
             summary_table = pd.DataFrame(columns=[ 
                 'Cycle', 'Date', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
-                'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'NEGATIVE CALL DROP #', 
+                'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'CALL DROP #', 
                 'CALL DROP RATIO #'
             ]) 
 
@@ -355,7 +355,7 @@ if uploaded_file is not None:
                 # PTP Rate: PTP ACC / Connected # * 100
                 ptp_rate = (ptp_acc / connected * 100) if connected != 0 else None
 
-                # Negative Call Drop: Count rows where Status contains NEGATIVE CALLOUTS - DROP CALL and Remark By is not SYSTEM
+                # Call Drop: Count rows where Status contains NEGATIVE CALLOUTS - DROP CALL and Remark By is not SYSTEM
                 call_drop_count = group[(group['Status'].str.contains('NEGATIVE CALLOUTS - DROP CALL', na=False)) & 
                                         (~group['Remark By'].str.upper().isin(['SYSTEM']))]['Account No.'].count()
 
@@ -373,7 +373,7 @@ if uploaded_file is not None:
                     'CONNECTED ACC': connected_acc,
                     'PTP ACC': ptp_acc,
                     'PTP RATE': f"{round(ptp_rate)}%" if ptp_rate is not None else None,
-                    'NEGATIVE CALL DROP #': call_drop_count,
+                    'CALL DROP #': call_drop_count,
                     'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
                 }])], ignore_index=True)
 
