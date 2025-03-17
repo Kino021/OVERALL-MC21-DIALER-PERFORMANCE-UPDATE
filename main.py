@@ -36,7 +36,7 @@ if uploaded_file is not None:
     df = load_data(uploaded_file)
 
     # Exclude rows where STATUS contains 'BP' (Broken Promise) or 'ABORT'
-    df = df[~df['Status'].str.contains('BP|ABORT', na=False)]
+    df = df[~df['Status'].str.contains('ABORT', na=False)]
 
     # Exclude rows where REMARK contains certain keywords or phrases
     excluded_remarks = [
