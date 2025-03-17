@@ -298,7 +298,7 @@ if uploaded_file is not None:
 
                 summary_table = pd.concat([summary_table, pd.DataFrame([{
                     'Cycle': cycle,
-                    'Date': group['Date'].max(),  # Get the latest date for each cycle
+                    'Date': group['Date'].dt.date.max(),  # Only display the date, no time
                     'ACCOUNTS': accounts,
                     'TOTAL DIALED': total_dialed,
                     'PENETRATION RATE (%)': f"{round(penetration_rate)}%" if penetration_rate is not None else None,
@@ -364,7 +364,7 @@ if uploaded_file is not None:
 
                 summary_table = pd.concat([summary_table, pd.DataFrame([{
                     'Cycle': cycle,
-                    'Date': group['Date'].max(),  # Get the latest date for each cycle
+                    'Date': group['Date'].dt.date.max(),  # Only display the date, no time
                     'ACCOUNTS': accounts,
                     'TOTAL DIALED': total_dialed,
                     'PENETRATION RATE (%)': f"{round(penetration_rate)}%" if penetration_rate is not None else None,
