@@ -36,20 +36,19 @@ if uploaded_file is not None:
     df = load_data(uploaded_file)
 
     # Exclude rows where STATUS contains 'BP' (Broken Promise), 'ABORT', or 'NEW'
-    df = df[~df['Status'].str.contains('BP|ABORT|NEW', na=False)]
+    df = df[~df['Status'].str.contains('ABORT', na=False)]
 
     # Define excluded remarks
     excluded_remarks = [
+        "Broken Promise"
+        "New files imported"
         "Updates when case reassign to another collector", 
         "NDF IN ICS", 
         "FOR PULL OUT (END OF HANDLING PERIOD)", 
         "END OF HANDLING PERIOD",
         "1_Cured as of"  # Added new exclusion
     ]
-
-    # Filter out remarks unless they contain "System Auto Update Remarks For PD"
-    mask_exclude = df['Remark'].str.contains('|'.join(excluded_remarks), case=False, na=False)
-    mask_include = df['Remark'].str.contains("System Auto Update Remarks For PD", case=False, na=False)
+    df = df[~df['Remark'].str.contains('|'.join(excluded_remarks), case=False, na=False)]
 
     # Exclude remarks only if they do not contain the inclusion phrase
     df = df[~mask_exclude | mask_include]
