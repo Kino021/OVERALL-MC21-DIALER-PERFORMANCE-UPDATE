@@ -64,7 +64,7 @@ if uploaded_file is not None:
             for date, group in df.groupby(df['Date'].dt.date):
                 # Accounts: Count unique Account No. where Remark Type is Predictive, Follow Up, or Outgoing
                 accounts = group[group['Remark Type'].isin(['Predictive', 'Follow Up', 'Outgoing'])]['Account No.'].nunique()
-
+                
                 # Total Dialed: Count Account No. where Remark Type is Predictive, Follow Up, or Outgoing (without uniqueness)
                 total_dialed = group[group['Remark Type'].isin(['Predictive', 'Follow Up', 'Outgoing'])]['Account No.'].count()
 
@@ -132,7 +132,7 @@ if uploaded_file is not None:
             for date, group in df_filtered.groupby(df_filtered['Date'].dt.date):
                 # Accounts: Count unique Account No. where Remark Type is Predictive or Follow Up
                 accounts = group[group['Remark Type'].isin(['Predictive', 'Follow Up'])]['Account No.'].nunique()
-
+                
                 # Total Dialed: Count Account No. where Remark Type is Predictive or Follow Up (without uniqueness)
                 total_dialed = group[group['Remark Type'].isin(['Predictive', 'Follow Up'])]['Account No.'].count()
 
@@ -200,7 +200,7 @@ if uploaded_file is not None:
             for date, group in df_filtered.groupby(df_filtered['Date'].dt.date):
                 # Accounts: Count unique Account No. where Remark Type is Outgoing
                 accounts = group[group['Remark Type'] == 'Outgoing']['Account No.'].nunique()
-
+                
                 # Total Dialed: Count Account No. where Remark Type is Outgoing (without uniqueness)
                 total_dialed = group[group['Remark Type'] == 'Outgoing']['Account No.'].count()
 
@@ -264,7 +264,7 @@ if uploaded_file is not None:
             for cycle, group in df_filtered.groupby('Service No.'):
                 # Accounts: Count unique Account No. where Remark Type is Predictive or Follow Up
                 accounts = group[group['Remark Type'].isin(['Predictive', 'Follow Up'])]['Account No.'].nunique()
-
+                
                 # Total Dialed: Count Account No. where Remark Type is Predictive or Follow Up (without uniqueness)
                 total_dialed = group[group['Remark Type'].isin(['Predictive', 'Follow Up'])]['Account No.'].count()
 
@@ -333,7 +333,7 @@ if uploaded_file is not None:
             for cycle, group in df_filtered.groupby('Service No.'):
                 # Accounts: Count unique Account No. where Remark Type is Outgoing
                 accounts = group[group['Remark Type'] == 'Outgoing']['Account No.'].nunique()
-
+                
                 # Total Dialed: Count Account No. where Remark Type is Outgoing (without uniqueness)
                 total_dialed = group[group['Remark Type'] == 'Outgoing']['Account No.'].count()
 
@@ -355,4 +355,31 @@ if uploaded_file is not None:
                 # PTP Rate: PTP ACC / Connected # * 100
                 ptp_rate = (ptp_acc / connected * 100) if connected != 0 else None
 
-                # Call Dr
+                # Call Drop: Count rows where Status contains NEGATIVE CALLOUTS - DROP CALL and Remark By is not SYSTEM
+                call_drop_count = group[(group['Status'].str.contains('NEGATIVE CALLOUTS - DROP CALL', na=False)) & 
+                                        (~group['Remark By'].str.upper().isin(['SYSTEM']))]['Account No.'].count()
+
+                # Call Drop Ratio: Call Drop Count / Connected ACC * 100
+                call_drop_ratio = (call_drop_count / connected_acc * 100) if connected_acc != 0 else None
+
+                summary_table = pd.concat([summary_table, pd.DataFrame([{
+                    'Cycle': cycle,
+                    'Date': group['Date'].dt.date.max(),  # Only display the date, no time
+                    'ACCOUNTS': accounts,
+                    'TOTAL DIALED': total_dialed,
+                    'PENETRATION RATE (%)': f"{round(penetration_rate)}%" if penetration_rate is not None else None,
+                    'CONNECTED #': connected,
+                    'CONNECTED RATE (%)': f"{round(connected_rate)}%" if connected_rate is not None else None,
+                    'CONNECTED ACC': connected_acc,
+                    'PTP ACC': ptp_acc,
+                    'PTP RATE': f"{round(ptp_rate)}%" if ptp_rate is not None else None,
+                    'CALL DROP #': call_drop_count,
+                    'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
+                }])], ignore_index=True)
+
+            return summary_table
+
+        # Display Per Cycle Manual Summary Table
+        st.write("## Per Cycle Manual Summary Table")
+        per_cycle_manual_table = calculate_per_cycle_manual_summary(df)
+        st.write(per_cycle_manual_table)
