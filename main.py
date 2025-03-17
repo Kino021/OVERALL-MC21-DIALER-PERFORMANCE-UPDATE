@@ -41,6 +41,7 @@ if uploaded_file is not None:
     # Exclude rows where REMARK contains certain keywords or phrases
     excluded_remarks = [
         "NEW", 
+        "Broken Promise"
         "New files imported", 
         "Updates when case reassign to another collector", 
         "NDF IN ICS", 
