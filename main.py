@@ -51,10 +51,6 @@ if uploaded_file is not None:
 
     # Create a mask to exclude remarks that contain any of the excluded phrases
     df = df[~df['Remark'].str.contains('|'.join(excluded_remarks), case=False, na=False)]
-    
-    # Exclude remarks only if they do not contain the inclusion phrase
-    df = df[~mask_exclude | mask_include]
-
 
     # Check if data is empty after filtering
     if df.empty:
