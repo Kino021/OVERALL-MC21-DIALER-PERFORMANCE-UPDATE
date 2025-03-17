@@ -35,10 +35,10 @@ uploaded_file = st.sidebar.file_uploader("Upload Daily Remark File", type="xlsx"
 if uploaded_file is not None:
     df = load_data(uploaded_file)
 
-    # Exclude rows where STATUS contains 'BP' (Broken Promise) or 'ABORT'
+    # Exclude rows where STATUS contains 'BP' (Broken Promise), 'ABORT', or 'NEW'
     df = df[~df['Status'].str.contains('BP|ABORT|NEW', na=False)]
 
-    # Exclude rows where REMARK contains certain keywords or phrases
+    # Define excluded remarks
     excluded_remarks = [
         "Updates when case reassign to another collector", 
         "NDF IN ICS", 
@@ -46,7 +46,14 @@ if uploaded_file is not None:
         "END OF HANDLING PERIOD",
         "1_Cured as of"  # Added new exclusion
     ]
-    df = df[~df['Remark'].str.contains('|'.join(excluded_remarks), case=False, na=False)]
+
+    # Filter out remarks unless they contain "System Auto Update Remarks For PD"
+    mask_exclude = df['Remark'].str.contains('|'.join(excluded_remarks), case=False, na=False)
+    mask_include = df['Remark'].str.contains("System Auto Update Remarks For PD", case=False, na=False)
+
+    # Exclude remarks only if they do not contain the inclusion phrase
+    df = df[~mask_exclude | mask_include]
+
 
     # Check if data is empty after filtering
     if df.empty:
