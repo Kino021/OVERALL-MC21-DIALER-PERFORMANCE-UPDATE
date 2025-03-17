@@ -28,6 +28,9 @@ def load_data(uploaded_file):
     # Convert 'Date' to datetime if it isn't already
     df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
 
+    # Exclude rows where the date is a Sunday (weekday() == 6)
+    df = df[df['Date'].dt.weekday != 6]  # 6 corresponds to Sunday
+
     return df
 
 uploaded_file = st.sidebar.file_uploader("Upload Daily Remark File", type="xlsx")
@@ -252,6 +255,7 @@ if uploaded_file is not None:
             df_filtered = df[df['Remark Type'] == 'Outgoing']
 
             for cycle, group in df_filtered.groupby('Service No.'):
+
                 for date, date_group in group.groupby(group['Date'].dt.date):  
                     accounts = date_group[date_group['Remark Type'] == 'Outgoing']['Account No.'].nunique()
                     total_dialed = date_group[date_group['Remark Type'] == 'Outgoing']['Account No.'].count()
