@@ -2,15 +2,18 @@ import os
 import pandas as pd
 import streamlit as st
 
-# Function to load CSV file
-def load_csv(file_path):
+# Function to load data from a CSV or Excel file
+def load_file(file):
     try:
-        if os.path.exists(file_path):
-            df = pd.read_csv(file_path)
-            return df
+        # Check if the uploaded file is a CSV or Excel file
+        if file.name.endswith('.csv'):
+            df = pd.read_csv(file)
+        elif file.name.endswith('.xlsx') or file.name.endswith('.xls'):
+            df = pd.read_excel(file)
         else:
-            st.error(f"File '{file_path}' not found. Please check the file path.")
+            st.error("Unsupported file type. Please upload a CSV or Excel file.")
             return None
+        return df
     except Exception as e:
         st.error(f"An error occurred while loading the file: {e}")
         return None
@@ -80,45 +83,46 @@ def calculate_per_balance_category(df):
         return None
 
 # Streamlit file uploader
-uploaded_file = st.file_uploader("Choose a CSV file", type=["csv"])
+uploaded_file = st.file_uploader("Choose a CSV or Excel file", type=["csv", "xlsx", "xls"])
 
 # If a file is uploaded, process it
 if uploaded_file is not None:
     try:
         # Read the uploaded file into a DataFrame
-        df = pd.read_csv(uploaded_file)
-        st.write("File loaded successfully!")
-        st.write(df)  # Display the dataframe in Streamlit
-        
-        # Calculate combined summary
-        combined_summary = calculate_combined_summary(df)
-        if combined_summary is not None:
-            st.write("Combined Summary")
-            st.write(combined_summary)
-        
-        # Calculate overall predictive summary
-        overall_predictive = calculate_overall_predictive(df)
-        if overall_predictive is not None:
-            st.write("Overall Predictive Summary")
-            st.write(overall_predictive)
-        
-        # Calculate overall manual summary
-        overall_manual = calculate_overall_manual(df)
-        if overall_manual is not None:
-            st.write("Overall Manual Summary")
-            st.write(overall_manual)
-        
-        # Calculate per cycle summary
-        per_cycle = calculate_per_cycle(df)
-        if per_cycle is not None:
-            st.write("Per Cycle Summary")
-            st.write(per_cycle)
-        
-        # Calculate per balance category summary
-        per_balance_category = calculate_per_balance_category(df)
-        if per_balance_category is not None:
-            st.write("Per Balance Category Summary")
-            st.write(per_balance_category)
+        df = load_file(uploaded_file)
+        if df is not None:
+            st.write("File loaded successfully!")
+            st.write(df)  # Display the dataframe in Streamlit
+            
+            # Calculate combined summary
+            combined_summary = calculate_combined_summary(df)
+            if combined_summary is not None:
+                st.write("Combined Summary")
+                st.write(combined_summary)
+            
+            # Calculate overall predictive summary
+            overall_predictive = calculate_overall_predictive(df)
+            if overall_predictive is not None:
+                st.write("Overall Predictive Summary")
+                st.write(overall_predictive)
+            
+            # Calculate overall manual summary
+            overall_manual = calculate_overall_manual(df)
+            if overall_manual is not None:
+                st.write("Overall Manual Summary")
+                st.write(overall_manual)
+            
+            # Calculate per cycle summary
+            per_cycle = calculate_per_cycle(df)
+            if per_cycle is not None:
+                st.write("Per Cycle Summary")
+                st.write(per_cycle)
+            
+            # Calculate per balance category summary
+            per_balance_category = calculate_per_balance_category(df)
+            if per_balance_category is not None:
+                st.write("Per Balance Category Summary")
+                st.write(per_balance_category)
     
     except Exception as e:
         st.error(f"An error occurred while processing the uploaded file: {e}")
