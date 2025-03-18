@@ -232,9 +232,9 @@ if uploaded_file is not None:
                     total_ptp_amount = date_group[(date_group['Status'].str.contains('PTP', na=False)) & (date_group['PTP Amount'] != 0)]['PTP Amount'].sum()
                     total_balance = date_group[(date_group['PTP Amount'] != 0)]['Balance'].sum()  # Calculate total balance when PTP Amount exists
                     system_drop = group[(group['Status'].str.contains('DROPPED', na=False)) & (group['Remark By'] == 'SYSTEM')]['Account No.'].count()
-                    call_drop_count = date_group[(date_group['Status'].str.contains('NEGATIVE CALLOUTS - DROP CALL', na=False)) & 
-                                                 (~date_group['Remark By'].str.upper().isin(['SYSTEM']))]['Account No.'].count()
-                    call_drop_ratio = (call_drop_count / connected_acc * 100) if connected_acc != 0 else None
+                    call_drop_count = group[(group['Status'].str.contains('NEGATIVE CALLOUTS - DROP CALL', na=False)) & 
+                                          (~group['Remark By'].str.upper().isin(['SYSTEM']))]['Account No.'].count()
+                    call_drop_ratio = (system_drop / connected_acc * 100) if connected_acc != 0 else None
 
                     summary_table = pd.concat([summary_table, pd.DataFrame([{
                         'Cycle': cycle,
