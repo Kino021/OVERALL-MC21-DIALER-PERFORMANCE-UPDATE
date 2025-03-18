@@ -246,8 +246,5 @@ if uploaded_file is not None:
 
         # Display Per Cycle Manual Summary Table
         st.write("## Per Cycle Manual Summary Table")
-        for cycle in df['Service No.'].unique():
-            cycle_df = df[df['Service No.'] == cycle]
-            cycle_summary = calculate_per_cycle_manual_summary(cycle_df)
-            st.write(f"### Cycle {cycle}")
-            st.write(cycle_summary)
+        per_cycle_manual_summary_table = calculate_per_cycle_manual_summary(df)
+        st.write(per_cycle_manual_summary_table)
