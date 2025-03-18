@@ -183,7 +183,7 @@ if uploaded_file is not None:
                 system_drop = group[(group['Status'].str.contains('DROPPED', na=False)) & (group['Remark By'] == 'SYSTEM')]['Account No.'].count()
                 call_drop_count = group[(group['Status'].str.contains('NEGATIVE CALLOUTS - DROP CALL', na=False)) & 
                                         (~group['Remark By'].str.upper().isin(['SYSTEM']))]['Account No.'].count()
-                call_drop_ratio = (system_drop / connected_acc * 100) if connected_acc != 0 else None
+                call_drop_ratio = (call_drop_count / connected_acc * 100) if connected_acc != 0 else None
 
                 summary_table = pd.concat([summary_table, pd.DataFrame([{
                     'Day': date,
