@@ -1,9 +1,22 @@
 import pandas as pd
 
+# Ensure the DataFrame is loaded and has necessary columns
+# Example loading of your CSV file:
+df = pd.read_csv("your_data.csv")
+
+# Check the column names in your DataFrame to make sure they're correct
+print(df.columns)
+
 # Modify this function to handle per date and per balance category
 def calculate_balance_summary(df):
+    # Check if necessary columns are present
+    required_columns = ['Date', 'Balance Category', 'Account No.', 'Call Status', 'Status', 'PTP Amount', 'Remark By']
+    missing_columns = [col for col in required_columns if col not in df.columns]
+    if missing_columns:
+        raise ValueError(f"Missing columns: {', '.join(missing_columns)}")
+
     # Ensure that 'Date' and 'Balance Category' are correctly formatted
-    df['Date'] = pd.to_datetime(df['Date'])
+    df['Date'] = pd.to_datetime(df['Date'], errors='coerce')  # Handle any invalid date format
     df['Balance Category'] = df['Balance Category'].astype(str)  # Ensure it's a string if it's not
 
     # Group by Date and Balance Category
@@ -31,10 +44,10 @@ def calculate_balance_summary(df):
     return grouped
 
 # Example usage:
-# Assuming 'df' is your DataFrame that contains the required columns like 'Account No.', 'Call Status', 'Status', etc.
-# df = pd.read_csv("your_data.csv")  # If you're reading from a CSV file
-summary_table = calculate_balance_summary(df)
-
-# Display the summary table
-import streamlit as st
-st.write(summary_table)
+# Assuming the DataFrame df is loaded correctly
+try:
+    summary_table = calculate_balance_summary(df)
+    import streamlit as st
+    st.write(summary_table)
+except Exception as e:
+    print(f"An error occurred: {e}")
