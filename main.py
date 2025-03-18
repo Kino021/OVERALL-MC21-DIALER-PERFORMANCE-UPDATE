@@ -56,30 +56,43 @@ if uploaded_file is not None:
     if df.empty:
         st.warning("No valid data available after filtering.")
     else:
-        # Overall Combined Summary Table (existing functionality remains)
-        def calculate_combined_summary(df):
-            summary_table = pd.DataFrame(columns=[ 
-                'Day', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
+        # New Dialer Report Balance Summary Table
+        def calculate_balance_summary(df):
+            balance_summary = pd.DataFrame(columns=[ 
+                'Balance Range', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
                 'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'CALL DROP #', 
                 'SYSTEM DROP', 'CALL DROP RATIO #'
             ]) 
 
-            for date, group in df.groupby(df['Date'].dt.date):
-                accounts = group[group['Remark Type'].isin(['Predictive', 'Follow Up', 'Outgoing'])]['Account No.'].nunique()
-                total_dialed = group[group['Remark Type'].isin(['Predictive', 'Follow Up', 'Outgoing'])]['Account No.'].count()
-                connected = group[group['Call Status'] == 'CONNECTED']['Account No.'].nunique()
+            # Define the balance ranges
+            balance_ranges = [
+                (6000.00, 49000.00),  # 6,000 to 49,000
+                (50000.00, 99000.00),  # 50,000 to 99,000
+                (100000.00, float('inf'))  # 100,000 and above
+            ]
+
+            # Process the data for each balance range
+            for lower, upper in balance_ranges:
+                df_filtered = df[(df['Balance'] >= lower) & (df['Balance'] <= upper)]
+
+                # Calculate metrics for each balance range
+                accounts = df_filtered['Account No.'].nunique()
+                total_dialed = df_filtered['Account No.'].count()
+                connected = df_filtered[df_filtered['Call Status'] == 'CONNECTED']['Account No.'].nunique()
                 penetration_rate = (total_dialed / accounts * 100) if accounts != 0 else None
-                connected_acc = group[group['Call Status'] == 'CONNECTED']['Account No.'].count()
+                connected_acc = df_filtered[df_filtered['Call Status'] == 'CONNECTED']['Account No.'].count()
                 connected_rate = (connected_acc / total_dialed * 100) if total_dialed != 0 else None
-                ptp_acc = group[(group['Status'].str.contains('PTP', na=False)) & (group['PTP Amount'] != 0)]['Account No.'].nunique()
+                ptp_acc = df_filtered[(df_filtered['Status'].str.contains('PTP', na=False)) & (df_filtered['PTP Amount'] != 0)]['Account No.'].nunique()
                 ptp_rate = (ptp_acc / connected * 100) if connected != 0 else None
-                system_drop = group[(group['Status'].str.contains('DROPPED', na=False)) & (group['Remark By'] == 'SYSTEM')]['Account No.'].count()
-                call_drop_count = group[(group['Status'].str.contains('NEGATIVE CALLOUTS - DROP CALL', na=False)) & 
-                                        (~group['Remark By'].str.upper().isin(['SYSTEM']))]['Account No.'].count()
+                system_drop = df_filtered[(df_filtered['Status'].str.contains('DROPPED', na=False)) & (df_filtered['Remark By'] == 'SYSTEM')]['Account No.'].count()
+                call_drop_count = df_filtered[(df_filtered['Status'].str.contains('NEGATIVE CALLOUTS - DROP CALL', na=False)) & 
+                                              (~df_filtered['Remark By'].str.upper().isin(['SYSTEM']))]['Account No.'].count()
                 call_drop_ratio = (system_drop / connected_acc * 100) if connected_acc != 0 else None
 
-                summary_table = pd.concat([summary_table, pd.DataFrame([{
-                    'Day': date,
+                balance_range_str = f"{lower:,.2f} to {upper:,.2f}" if upper != float('inf') else f"{lower:,.2f} and above"
+
+                balance_summary = pd.concat([balance_summary, pd.DataFrame([{
+                    'Balance Range': balance_range_str,
                     'ACCOUNTS': accounts,
                     'TOTAL DIALED': total_dialed,
                     'PENETRATION RATE (%)': f"{round(penetration_rate)}%" if penetration_rate is not None else None,
@@ -93,64 +106,16 @@ if uploaded_file is not None:
                     'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
                 }])], ignore_index=True)
 
-            return summary_table
-
-        # Display Combined Summary Table
-        st.write("## Overall Combined Summary Table")
-        combined_summary_table = calculate_combined_summary(df)
-        st.write(combined_summary_table, container_width=True)
-
-        # New category: Dialer Report Balance per Cycle (Filtered by Balance Ranges)
-        def calculate_dialer_report_balance(df):
-            balance_summary = pd.DataFrame(columns=[ 
-                'Balance Range', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
-                'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'CALL DROP #', 
-                'SYSTEM DROP', 'CALL DROP RATIO #'
-            ])
-
-            # Define the balance ranges
-            balance_ranges = [
-                ('6,000.00 to 49,000.00', 6000, 49000),
-                ('50,000.00 to 99,000.00', 50000, 99000),
-                ('100,000.00 and above', 100000, float('inf'))
-            ]
-
-            for balance_range, min_balance, max_balance in balance_ranges:
-                # Filter the dataframe based on the balance range
-                df_filtered = df[(df['Balance'] >= min_balance) & (df['Balance'] <= max_balance)]
-
-                for date, group in df_filtered.groupby(df_filtered['Date'].dt.date):
-                    accounts = group[group['Remark Type'].isin(['Predictive', 'Follow Up', 'Outgoing'])]['Account No.'].nunique()
-                    total_dialed = group[group['Remark Type'].isin(['Predictive', 'Follow Up', 'Outgoing'])]['Account No.'].count()
-                    connected = group[group['Call Status'] == 'CONNECTED']['Account No.'].nunique()
-                    penetration_rate = (total_dialed / accounts * 100) if accounts != 0 else None
-                    connected_acc = group[group['Call Status'] == 'CONNECTED']['Account No.'].count()
-                    connected_rate = (connected_acc / total_dialed * 100) if total_dialed != 0 else None
-                    ptp_acc = group[(group['Status'].str.contains('PTP', na=False)) & (group['PTP Amount'] != 0)]['Account No.'].nunique()
-                    ptp_rate = (ptp_acc / connected * 100) if connected != 0 else None
-                    system_drop = group[(group['Status'].str.contains('DROPPED', na=False)) & (group['Remark By'] == 'SYSTEM')]['Account No.'].count()
-                    call_drop_count = group[(group['Status'].str.contains('NEGATIVE CALLOUTS - DROP CALL', na=False)) & 
-                                            (~group['Remark By'].str.upper().isin(['SYSTEM']))]['Account No.'].count()
-                    call_drop_ratio = (system_drop / connected_acc * 100) if connected_acc != 0 else None
-
-                    balance_summary = pd.concat([balance_summary, pd.DataFrame([{
-                        'Balance Range': balance_range,
-                        'ACCOUNTS': accounts,
-                        'TOTAL DIALED': total_dialed,
-                        'PENETRATION RATE (%)': f"{round(penetration_rate)}%" if penetration_rate is not None else None,
-                        'CONNECTED #': connected,
-                        'CONNECTED RATE (%)': f"{round(connected_rate)}%" if connected_rate is not None else None,
-                        'CONNECTED ACC': connected_acc,
-                        'PTP ACC': ptp_acc,
-                        'PTP RATE': f"{round(ptp_rate)}%" if ptp_rate is not None else None,
-                        'CALL DROP #': call_drop_count,
-                        'SYSTEM DROP': system_drop,
-                        'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
-                    }])], ignore_index=True)
-
             return balance_summary
 
-        # Display Dialer Report Balance per Cycle
-        st.write("## Dialer Report Balance per Cycle (Filtered by Balance Ranges)")
-        balance_report_table = calculate_dialer_report_balance(df)
-        st.write(balance_report_table)
+        # Display Dialer Report Balance Summary Table
+        st.write("## Dialer Report Balance Summary Table")
+        balance_summary_table = calculate_balance_summary(df)
+        st.write(balance_summary_table)
+
+        # Overall Combined Summary Table (existing)
+        st.write("## Overall Combined Summary Table")
+        combined_summary_table = calculate_combined_summary(df)
+        st.write(combined_summary_table)
+
+        # (Continue with the existing summary tables...)
