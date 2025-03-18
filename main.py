@@ -231,6 +231,7 @@ if uploaded_file is not None:
                     ptp_rate = (ptp_acc / connected * 100) if connected != 0 else None
                     total_ptp_amount = date_group[(date_group['Status'].str.contains('PTP', na=False)) & (date_group['PTP Amount'] != 0)]['PTP Amount'].sum()
                     total_balance = date_group[(date_group['PTP Amount'] != 0)]['Balance'].sum()  # Calculate total balance when PTP Amount exists
+                    system_drop = group[(group['Status'].str.contains('DROPPED', na=False)) & (group['Remark By'] == 'SYSTEM')]['Account No.'].count()
                     call_drop_count = date_group[(date_group['Status'].str.contains('NEGATIVE CALLOUTS - DROP CALL', na=False)) & 
                                                  (~date_group['Remark By'].str.upper().isin(['SYSTEM']))]['Account No.'].count()
                     call_drop_ratio = (call_drop_count / connected_acc * 100) if connected_acc != 0 else None
@@ -248,6 +249,7 @@ if uploaded_file is not None:
                         'PTP RATE': f"{round(ptp_rate)}%" if ptp_rate is not None else None,
                         'TOTAL PTP AMOUNT': total_ptp_amount,
                         'TOTAL BALANCE': total_balance,
+                        'SYSTEM DROP': system_drop,
                         'CALL DROP #': call_drop_count,
                         'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
                     }])], ignore_index=True)
