@@ -92,6 +92,7 @@ if uploaded_file is not None:
 
                 summary_table = pd.concat([summary_table, pd.DataFrame([{
                     'Day': date,
+                    'COLLECTORS COUNT': collectors_count
                     'ACCOUNTS': accounts,
                     'TOTAL DIALED': total_dialed,
                     'PENETRATION RATE (%)': f"{round(penetration_rate)}%" if penetration_rate is not None else None,
@@ -105,7 +106,6 @@ if uploaded_file is not None:
                     'CALL DROP #': call_drop_count,
                     'SYSTEM DROP': system_drop,
                     'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
-                    'COLLECTORS COUNT': collectors_count
                 }])], ignore_index=True)
 
             return summary_table
