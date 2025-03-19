@@ -68,7 +68,7 @@ if uploaded_file is not None:
             ]) 
 
             for date, group in df.groupby(df['Date'].dt.date):
-                accounts = group[group['Remark Type'].isin(['Predictive', 'Follow Up', 'Outgoing'])]['Account No.'].nunique()
+                accounts = group[group['Remark Type'].isin(['Predictive', 'Follow Up', 'Outgoing'])]['Account No.'].nunique()    `
                 total_dialed = group[group['Remark Type'].isin(['Predictive', 'Follow Up', 'Outgoing'])]['Account No.'].count()
                 connected = group[group['Call Status'] == 'CONNECTED']['Account No.'].nunique()
                 penetration_rate = (total_dialed / accounts * 100) if accounts != 0 else None
@@ -92,6 +92,7 @@ if uploaded_file is not None:
 
                 summary_table = pd.concat([summary_table, pd.DataFrame([{
                     'Day': date,
+                    'COLLECTORS COUNT': collectors_count  # Adding the collector count for each day
                     'ACCOUNTS': accounts,
                     'TOTAL DIALED': total_dialed,
                     'PENETRATION RATE (%)': f"{round(penetration_rate)}%" if penetration_rate is not None else None,
