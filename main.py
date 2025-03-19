@@ -69,11 +69,6 @@ if uploaded_file is not None:
 
             for date, group in df.groupby(df['Date'].dt.date):
                 # Calculate the number of unique collectors excluding certain ones
-                excluded_collectors = ['SYSTEM']  # You can add more names to exclude
-                # Remove rows that have excluded remarks or excluded collectors
-                collectors_valid_group = group[~group['Remark By'].isin(excluded_collectors)]
-                collectors_valid_group = collectors_valid_group[~collectors_valid_group['Remark'].str.contains('|'.join(excluded_remarks), case=False, na=False)]
-                collectors_count = collectors_valid_group['Remark By'].nunique()
                 accounts = group[group['Remark Type'].isin(['Predictive', 'Follow Up', 'Outgoing'])]['Account No.'].nunique()    `
                 total_dialed = group[group['Remark Type'].isin(['Predictive', 'Follow Up', 'Outgoing'])]['Account No.'].count()
                 connected = group[group['Call Status'] == 'CONNECTED']['Account No.'].nunique()
@@ -89,9 +84,14 @@ if uploaded_file is not None:
                                         (~group['Remark By'].str.upper().isin(['SYSTEM']))]['Account No.'].count()
                 call_drop_ratio = (system_drop / connected_acc * 100) if connected_acc != 0 else None
 
+                excluded_collectors = ['SYSTEM']  # You can add more names to exclude
+                # Remove rows that have excluded remarks or excluded collectors
+                collectors_valid_group = group[~group['Remark By'].isin(excluded_collectors)]
+                collectors_valid_group = collectors_valid_group[~collectors_valid_group['Remark'].str.contains('|'.join(excluded_remarks), case=False, na=False)]
+                collectors_count = collectors_valid_group['Remark By'].nunique()
+                
                 summary_table = pd.concat([summary_table, pd.DataFrame([{
                     'Day': date,
-                    'COLLECTORS COUNT': collectors_count  # Adding the collector count for each day
                     'ACCOUNTS': accounts,
                     'TOTAL DIALED': total_dialed,
                     'PENETRATION RATE (%)': f"{round(penetration_rate)}%" if penetration_rate is not None else None,
@@ -105,6 +105,7 @@ if uploaded_file is not None:
                     'CALL DROP #': call_drop_count,
                     'SYSTEM DROP': system_drop,
                     'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
+                    'COLLECTORS COUNT': collectors_count  # Adding the collector count for each day
                 }])], ignore_index=True)
 
             return summary_table
