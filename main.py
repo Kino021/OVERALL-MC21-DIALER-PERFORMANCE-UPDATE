@@ -35,6 +35,9 @@ def load_data(uploaded_file):
 
 uploaded_file = st.sidebar.file_uploader("Upload Daily Remark File", type="xlsx")
 
+# Initialize df as None in case no file is uploaded
+df = None
+
 if uploaded_file is not None:
     df = load_data(uploaded_file)
 
@@ -56,46 +59,61 @@ if uploaded_file is not None:
     df = df[~df['Remark'].str.contains('|'.join(excluded_remarks), case=False, na=False)]
 
     # Check if data is empty after filtering
-if df.empty:
-    st.warning("No valid data available after filtering.")
-else:
-    # The following code should be indented correctly
-    # This is where your 'calculate_combined_summary' function and other statements begin
-    def calculate_combined_summary(df):
-        summary_table = pd.DataFrame(columns=[ 
-            'Day', 'COLLECTORS COUNT', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
-            'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'TOTAL PTP AMOUNT', 
-            'TOTAL BALANCE', 'CALL DROP #', 'SYSTEM DROP', 'CALL DROP RATIO #'
-        ]) 
+    if df.empty:
+        st.warning("No valid data available after filtering.")
+    else:
+        # Overall Combined Summary Table
+        def calculate_combined_summary(df):
+            summary_table = pd.DataFrame(columns=[ 
+                'Day', 'COLLECTORS COUNT', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
+                'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'TOTAL PTP AMOUNT', 
+                'TOTAL BALANCE', 'CALL DROP #', 'SYSTEM DROP', 'CALL DROP RATIO #'
+            ]) 
 
-        for date, group in df.groupby(df['Date'].dt.date):
-            # Your calculations go here
-            accounts = group[group['Remark Type'].isin(['Predictive', 'Follow Up', 'Outgoing'])]['Account No.'].nunique()
-            total_dialed = group[group['Remark Type'].isin(['Predictive', 'Follow Up', 'Outgoing'])]['Account No.'].count()
-            # And so on...
-            
-            # Append the row to the summary table
-            summary_table = summary_table.append({
-                'Day': date,
-                'COLLECTORS COUNT': collectors_count,
-                'ACCOUNTS': accounts,
-                'TOTAL DIALED': total_dialed,
-                'PENETRATION RATE (%)': penetration_rate,
-                'CONNECTED #': connected,
-                'CONNECTED RATE (%)': connected_rate,
-                'CONNECTED ACC': connected_acc,
-                'PTP ACC': ptp_acc,
-                'PTP RATE': ptp_rate,
-                'TOTAL PTP AMOUNT': total_ptp_amount,
-                'TOTAL BALANCE': total_balance,
-                'CALL DROP #': call_drop_count,
-                'SYSTEM DROP': system_drop,
-                'CALL DROP RATIO #': call_drop_ratio
-            }, ignore_index=True)
+            for date, group in df.groupby(df['Date'].dt.date):
+                # Your calculations
+                accounts = group[group['Remark Type'].isin(['Predictive', 'Follow Up', 'Outgoing'])]['Account No.'].nunique()
+                total_dialed = group[group['Remark Type'].isin(['Predictive', 'Follow Up', 'Outgoing'])]['Account No.'].count()
+                connected = group[group['Call Status'] == 'CONNECTED']['Account No.'].nunique()
+                penetration_rate = (total_dialed / accounts * 100) if accounts != 0 else None
+                connected_acc = group[group['Call Status'] == 'CONNECTED']['Account No.'].count()
+                connected_rate = (connected_acc / total_dialed * 100) if total_dialed != 0 else None
+                ptp_acc = group[(group['Status'].str.contains('PTP', na=False)) & (group['PTP Amount'] != 0)]['Account No.'].nunique()
+                ptp_rate = (ptp_acc / connected * 100) if connected != 0 else None
+                total_ptp_amount = group[(group['Status'].str.contains('PTP', na=False)) & (group['PTP Amount'] != 0)]['PTP Amount'].sum()
+                total_balance = group[(group['PTP Amount'] != 0)]['Balance'].sum()  # Calculate total balance when PTP Amount exists
+                system_drop = group[(group['Status'].str.contains('DROPPED', na=False)) & (group['Remark By'] == 'SYSTEM')]['Account No.'].count()
+                call_drop_count = group[(group['Status'].str.contains('NEGATIVE CALLOUTS - DROP CALL', na=False)) & 
+                                        (~group['Remark By'].str.upper().isin(['SYSTEM']))]['Account No.'].count()
+                call_drop_ratio = (system_drop / connected_acc * 100) if connected_acc != 0 else None
 
-        return summary_table
+                # Calculate the number of unique collectors excluding certain ones
+                excluded_collectors = ['SYSTEM']  # You can add more names to exclude
+                # Remove rows that have excluded remarks or excluded collectors
+                collectors_valid_group = group[~group['Remark By'].isin(excluded_collectors)]
+                collectors_valid_group = collectors_valid_group[~collectors_valid_group['Remark'].str.contains('|'.join(excluded_remarks), case=False, na=False)]
+                collectors_count = collectors_valid_group['Remark By'].nunique()
 
+                # Append the row to the summary table
+                summary_table = summary_table.append({
+                    'Day': date,
+                    'COLLECTORS COUNT': collectors_count,
+                    'ACCOUNTS': accounts,
+                    'TOTAL DIALED': total_dialed,
+                    'PENETRATION RATE (%)': penetration_rate,
+                    'CONNECTED #': connected,
+                    'CONNECTED RATE (%)': connected_rate,
+                    'CONNECTED ACC': connected_acc,
+                    'PTP ACC': ptp_acc,
+                    'PTP RATE': ptp_rate,
+                    'TOTAL PTP AMOUNT': total_ptp_amount,
+                    'TOTAL BALANCE': total_balance,
+                    'CALL DROP #': call_drop_count,
+                    'SYSTEM DROP': system_drop,
+                    'CALL DROP RATIO #': call_drop_ratio
+                }, ignore_index=True)
 
+            return summary_table
     
         # Display Combined Summary Table
         st.write("## Overall Combined Summary Table")
