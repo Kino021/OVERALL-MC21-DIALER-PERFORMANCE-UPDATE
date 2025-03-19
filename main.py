@@ -60,7 +60,7 @@ if uploaded_file is not None:
         st.warning("No valid data available after filtering.")
     else:
         # Overall Combined Summary Table
-        def calculate_combined_summary(df):
+def calculate_combined_summary(df):
     # This is the start of the function's body
     summary_table = pd.DataFrame(columns=[ 
         'Day', 'COLLECTORS COUNT', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
@@ -112,6 +112,7 @@ if uploaded_file is not None:
         }, ignore_index=True)
 
     return summary_table
+
     
         # Display Combined Summary Table
         st.write("## Overall Combined Summary Table")
