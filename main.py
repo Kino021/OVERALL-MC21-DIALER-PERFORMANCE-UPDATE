@@ -106,7 +106,6 @@ if uploaded_file is not None:
                     'CALL DROP #': call_drop_count,
                     'SYSTEM DROP': system_drop,
                     'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
-                    'COLLECTORS COUNT': collectors_count  # Adding the collector count for each day
                 }])], ignore_index=True)
 
             return summary_table
