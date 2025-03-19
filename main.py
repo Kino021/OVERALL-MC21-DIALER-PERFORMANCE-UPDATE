@@ -64,7 +64,7 @@ if uploaded_file is not None:
             summary_table = pd.DataFrame(columns=[ 
                 'Day', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
                 'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'TOTAL PTP AMOUNT', 
-                'TOTAL BALANCE', 'CALL DROP #', 'SYSTEM DROP', 'CALL DROP RATIO #' , 'COLLECTORS COUNT'
+                'TOTAL BALANCE', 'CALL DROP #', 'SYSTEM DROP', 'CALL DROP RATIO #'
             ]) 
 
             for date, group in df.groupby(df['Date'].dt.date):
@@ -83,13 +83,6 @@ if uploaded_file is not None:
                                         (~group['Remark By'].str.upper().isin(['SYSTEM']))]['Account No.'].count()
                 call_drop_ratio = (system_drop / connected_acc * 100) if connected_acc != 0 else None
 
-                # Calculate the number of unique collectors excluding certain ones
-                excluded_collectors = ['SYSTEM']  # You can add more names to exclude
-                # Remove rows that have excluded remarks or excluded collectors
-                collectors_valid_group = group[~group['Remark By'].isin(excluded_collectors)]
-                collectors_valid_group = collectors_valid_group[~collectors_valid_group['Remark'].str.contains('|'.join(excluded_remarks), case=False, na=False)]
-                collectors_count = collectors_valid_group['Remark By'].nunique()
-
                 summary_table = pd.concat([summary_table, pd.DataFrame([{
                     'Day': date,
                     'ACCOUNTS': accounts,
@@ -105,7 +98,6 @@ if uploaded_file is not None:
                     'CALL DROP #': call_drop_count,
                     'SYSTEM DROP': system_drop,
                     'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
-                    'COLLECTORS COUNT': collectors_count  # Adding the collector count for each day
                 }])], ignore_index=True)
 
             return summary_table
@@ -120,7 +112,7 @@ if uploaded_file is not None:
             summary_table = pd.DataFrame(columns=[ 
                 'Day', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
                 'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'TOTAL PTP AMOUNT', 
-                'TOTAL BALANCE', 'CALL DROP #', 'SYSTEM DROP', 'CALL DROP RATIO #' , 'COLLECTORS COUNT'
+                'TOTAL BALANCE', 'CALL DROP #', 'SYSTEM DROP', 'CALL DROP RATIO #'
             ]) 
 
             # Filter the dataframe to include only 'Follow Up' and 'Predictive' Remark Types
@@ -142,13 +134,6 @@ if uploaded_file is not None:
                                         (~group['Remark By'].str.upper().isin(['SYSTEM']))]['Account No.'].count()
                 call_drop_ratio = (system_drop / connected_acc * 100) if connected_acc != 0 else None
 
-                # Calculate the number of unique collectors excluding certain ones
-                excluded_collectors = ['SYSTEM']  # You can add more names to exclude
-                # Remove rows that have excluded remarks or excluded collectors
-                collectors_valid_group = group[~group['Remark By'].isin(excluded_collectors)]
-                collectors_valid_group = collectors_valid_group[~collectors_valid_group['Remark'].str.contains('|'.join(excluded_remarks), case=False, na=False)]
-                collectors_count = collectors_valid_group['Remark By'].nunique()
-
                 summary_table = pd.concat([summary_table, pd.DataFrame([{
                     'Day': date,
                     'ACCOUNTS': accounts,
@@ -164,7 +149,6 @@ if uploaded_file is not None:
                     'CALL DROP #': call_drop_count,
                     'SYSTEM DROP': system_drop,
                     'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
-                    'COLLECTORS COUNT': collectors_count  # Adding the collector count for each day
                 }])], ignore_index=True)
 
             return summary_table
@@ -179,7 +163,7 @@ if uploaded_file is not None:
             summary_table = pd.DataFrame(columns=[ 
                 'Day', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
                 'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'TOTAL PTP AMOUNT', 
-                'TOTAL BALANCE', 'CALL DROP #', 'SYSTEM DROP', 'CALL DROP RATIO #' , 'COLLECTORS COUNT'
+                'TOTAL BALANCE', 'CALL DROP #', 'SYSTEM DROP', 'CALL DROP RATIO #'
             ]) 
 
             # Filter the dataframe to include only 'Outgoing' Remark Type
@@ -200,13 +184,6 @@ if uploaded_file is not None:
                 call_drop_count = group[(group['Status'].str.contains('NEGATIVE CALLOUTS - DROP CALL', na=False)) & 
                                         (~group['Remark By'].str.upper().isin(['SYSTEM']))]['Account No.'].count()
                 call_drop_ratio = (call_drop_count / connected_acc * 100) if connected_acc != 0 else None
-                
-                # Calculate the number of unique collectors excluding certain ones
-                excluded_collectors = ['SYSTEM']  # You can add more names to exclude
-                # Remove rows that have excluded remarks or excluded collectors
-                collectors_valid_group = group[~group['Remark By'].isin(excluded_collectors)]
-                collectors_valid_group = collectors_valid_group[~collectors_valid_group['Remark'].str.contains('|'.join(excluded_remarks), case=False, na=False)]
-                collectors_count = collectors_valid_group['Remark By'].nunique()
 
                 summary_table = pd.concat([summary_table, pd.DataFrame([{
                     'Day': date,
@@ -223,7 +200,6 @@ if uploaded_file is not None:
                     'CALL DROP #': call_drop_count,
                     'SYSTEM DROP': system_drop,
                     'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
-                    'COLLECTORS COUNT': collectors_count  # Adding the collector count for each day
                 }])], ignore_index=True)
 
             return summary_table
@@ -238,7 +214,7 @@ if uploaded_file is not None:
             summary_table = pd.DataFrame(columns=[ 
                 'Cycle', 'Date', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
                 'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'TOTAL PTP AMOUNT', 
-                'TOTAL BALANCE', 'CALL DROP #', 'SYSTEM DROP', 'CALL DROP RATIO #' , 'COLLECTORS COUNT'
+                'TOTAL BALANCE', 'CALL DROP #', 'SYSTEM DROP', 'CALL DROP RATIO #'
             ]) 
 
             # Filter the dataframe to include only 'Predictive' and 'Follow Up' Remark Types
@@ -263,13 +239,6 @@ if uploaded_file is not None:
                     call_drop_count = date_group[(date_group['Status'].str.contains('NEGATIVE CALLOUTS - DROP CALL', na=False)) & 
                                                 (~date_group['Remark By'].str.upper().isin(['SYSTEM']))]['Account No.'].count()
                     call_drop_ratio = (system_drop / connected_acc * 100) if connected_acc != 0 else None
-                    
-                # Calculate the number of unique collectors excluding certain ones
-                excluded_collectors = ['SYSTEM']  # You can add more names to exclude
-                # Remove rows that have excluded remarks or excluded collectors
-                collectors_valid_group = group[~group['Remark By'].isin(excluded_collectors)]
-                collectors_valid_group = collectors_valid_group[~collectors_valid_group['Remark'].str.contains('|'.join(excluded_remarks), case=False, na=False)]
-                collectors_count = collectors_valid_group['Remark By'].nunique()
 
                     summary_table = pd.concat([summary_table, pd.DataFrame([{
                         'Cycle': cycle,
@@ -287,7 +256,6 @@ if uploaded_file is not None:
                         'CALL DROP #': call_drop_count,
                         'SYSTEM DROP': system_drop,
                         'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
-                         'COLLECTORS COUNT': collectors_count  # Adding the collector count for each day
                     }])], ignore_index=True)
 
             return summary_table
@@ -302,7 +270,7 @@ if uploaded_file is not None:
             summary_table = pd.DataFrame(columns=[ 
                 'Cycle', 'Date', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
                 'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'TOTAL PTP AMOUNT', 
-                'TOTAL BALANCE', 'CALL DROP #', 'SYSTEM DROP', 'CALL DROP RATIO #' , 'COLLECTORS COUNT'
+                'TOTAL BALANCE', 'CALL DROP #', 'SYSTEM DROP', 'CALL DROP RATIO #'
             ]) 
 
             # Filter for 'Outgoing' as the Remark Type
@@ -327,13 +295,6 @@ if uploaded_file is not None:
                     call_drop_count = date_group[(date_group['Status'].str.contains('NEGATIVE CALLOUTS - DROP CALL', na=False)) & 
                                                  (~date_group['Remark By'].str.upper().isin(['SYSTEM']))]['Account No.'].count()
                     call_drop_ratio = (call_drop_count / connected_acc * 100) if connected_acc != 0 else None
-                    
-                # Calculate the number of unique collectors excluding certain ones
-                excluded_collectors = ['SYSTEM']  # You can add more names to exclude
-                # Remove rows that have excluded remarks or excluded collectors
-                collectors_valid_group = group[~group['Remark By'].isin(excluded_collectors)]
-                collectors_valid_group = collectors_valid_group[~collectors_valid_group['Remark'].str.contains('|'.join(excluded_remarks), case=False, na=False)]
-                collectors_count = collectors_valid_group['Remark By'].nunique()
 
                     summary_table = pd.concat([summary_table, pd.DataFrame([{
                         'Cycle': cycle,
@@ -351,8 +312,6 @@ if uploaded_file is not None:
                         'CALL DROP #': call_drop_count,
                         'SYSTEM DROP': system_drop,
                         'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
-                        'COLLECTORS COUNT': collectors_count  # Adding the collector count for each day
-                        
                     }])], ignore_index=True)
 
             return summary_table
