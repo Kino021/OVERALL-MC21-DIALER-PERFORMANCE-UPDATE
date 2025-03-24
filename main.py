@@ -65,15 +65,12 @@ if uploaded_file is not None:
         # Overall Combined Summary Table
         def calculate_combined_summary(df):
             summary_table = pd.DataFrame(columns=[ 
-                'Day', 'CLIENT', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
+                'Day', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
                 'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'TOTAL PTP AMOUNT', 
                 'TOTAL BALANCE', 'CALL DROP #', 'SYSTEM DROP', 'CALL DROP RATIO #'
             ]) 
 
             for date, group in df.groupby(df['Date'].dt.date):
-                # Assuming that 'CLIENT' is the client name in the DataFrame, and there is a 'Client' column.
-                client = group['CLIENT'].iloc[0]  # Taking the client name from the group (assuming it's the same for the group)
-
                 accounts = group[group['Remark Type'].isin(['Predictive', 'Follow Up', 'Outgoing'])]['Account No.'].nunique()
                 total_dialed = group[group['Remark Type'].isin(['Predictive', 'Follow Up', 'Outgoing'])]['Account No.'].count()
                 connected = group[group['Call Status'] == 'CONNECTED']['Account No.'].nunique()
@@ -91,7 +88,6 @@ if uploaded_file is not None:
 
                 summary_table = pd.concat([summary_table, pd.DataFrame([{
                     'Day': date,
-                    'CLIENT': client,  # Add the Client (Campaign)
                     'ACCOUNTS': accounts,
                     'TOTAL DIALED': total_dialed,
                     'PENETRATION RATE (%)': f"{round(penetration_rate)}%" if penetration_rate is not None else None,
@@ -215,7 +211,6 @@ if uploaded_file is not None:
         st.write("## Overall Manual Summary Table")
         overall_manual_table = calculate_manual_summary(df)
         st.write(overall_manual_table)
-
 
         # Per Cycle Predictive Summary Table
         def calculate_per_cycle_predictive_summary(df):
