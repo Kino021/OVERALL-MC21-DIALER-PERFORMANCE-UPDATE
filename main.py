@@ -62,8 +62,6 @@ if uploaded_file is not None:
     if df.empty:
         st.warning("No valid data available after filtering.")
     else:
-        # Overall Combined Summary Table
-# Overall Combined Summary Table
 # Overall Combined Summary Table
 def calculate_combined_summary(df):
     summary_table = pd.DataFrame(columns=[ 
