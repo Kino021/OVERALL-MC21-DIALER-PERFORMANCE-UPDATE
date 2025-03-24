@@ -124,20 +124,20 @@ if uploaded_file is not None:
             # Filter the dataframe to include only 'Follow Up' and 'Predictive' Remark Types
             df_filtered = df[df['Remark Type'].isin(['Predictive', 'Follow Up'])]
 
-            for (date, client), client_group in filtered_df[~filtered_df['CLIENT'].str.upper().isin(['SYSTEM'])].groupby([filtered_df['Date'].dt.date, 'CLIENT']):
-                accounts = group[group['Remark Type'].isin(['Predictive', 'Follow Up'])]['Account No.'].nunique()
-                total_dialed = group[group['Remark Type'].isin(['Predictive', 'Follow Up'])]['Account No.'].count()
-                connected = group[group['Call Status'] == 'CONNECTED']['Account No.'].nunique()
+            for (date, client), client_group in df_filtered[~df_filtered['CLIENT'].str.upper().isin(['SYSTEM'])].groupby([df_filtered['Date'].dt.date, 'CLIENT']):
+                accounts = client_group[client_group['Remark Type'].isin(['Predictive', 'Follow Up'])]['Account No.'].nunique()
+                total_dialed = client_group[client_group['Remark Type'].isin(['Predictive', 'Follow Up'])]['Account No.'].count()
+                connected = client_group[client_group['Call Status'] == 'CONNECTED']['Account No.'].nunique()
                 penetration_rate = (total_dialed / accounts * 100) if accounts != 0 else None
-                connected_acc = group[group['Call Status'] == 'CONNECTED']['Account No.'].count()
+                connected_acc = client_group[client_group['Call Status'] == 'CONNECTED']['Account No.'].count()
                 connected_rate = (connected_acc / total_dialed * 100) if total_dialed != 0 else None
-                ptp_acc = group[(group['Status'].str.contains('PTP', na=False)) & (group['PTP Amount'] != 0)]['Account No.'].nunique()
+                ptp_acc = client_group[(client_group['Status'].str.contains('PTP', na=False)) & (client_group['PTP Amount'] != 0)]['Account No.'].nunique()
                 ptp_rate = (ptp_acc / connected * 100) if connected != 0 else None
-                total_ptp_amount = group[(group['Status'].str.contains('PTP', na=False)) & (group['PTP Amount'] != 0)]['PTP Amount'].sum()
-                total_balance = group[(group['PTP Amount'] != 0)]['Balance'].sum()  # Calculate total balance when PTP Amount exists
-                system_drop = group[(group['Status'].str.contains('DROPPED', na=False)) & (group['Remark By'] == 'SYSTEM')]['Account No.'].count()
-                call_drop_count = group[(group['Status'].str.contains('NEGATIVE CALLOUTS - DROP CALL', na=False)) & 
-                                        (~group['Remark By'].str.upper().isin(['SYSTEM']))]['Account No.'].count()
+                total_ptp_amount = client_group[(client_group['Status'].str.contains('PTP', na=False)) & (client_group['PTP Amount'] != 0)]['PTP Amount'].sum()
+                total_balance = client_group[(client_group['PTP Amount'] != 0)]['Balance'].sum()
+                system_drop = client_group[(client_group['Status'].str.contains('DROPPED', na=False)) & (client_group['Remark By'] == 'SYSTEM')]['Account No.'].count()
+                call_drop_count = client_group[(client_group['Status'].str.contains('NEGATIVE CALLOUTS - DROP CALL', na=False)) & 
+                                               (~client_group['Remark By'].str.upper().isin(['SYSTEM']))]['Account No.'].count()
                 call_drop_ratio = (system_drop / connected_acc * 100) if connected_acc != 0 else None
 
                 summary_table = pd.concat([summary_table, pd.DataFrame([{
@@ -159,63 +159,6 @@ if uploaded_file is not None:
                 }])], ignore_index=True)
 
             return summary_table
-
-        # Display Overall Predictive Summary Table
-        st.write("## Overall Predictive Summary Table")
-        overall_predictive_table = calculate_predictive_summary(df)
-        st.write(overall_predictive_table)
-        
-        # Additional summary functions would also need similar updates
-        # (manual, per cycle summaries) to ensure CLIENT is not included
-
-
-        # Overall Predictive Summary Table
-        def calculate_predictive_summary(df):
-    summary_table = pd.DataFrame(columns=[ 
-        'Day', 'CLIENT', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
-        'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'TOTAL PTP AMOUNT', 
-        'TOTAL BALANCE', 'CALL DROP #', 'SYSTEM DROP', 'CALL DROP RATIO #'
-    ]) 
-
-    # Filter the dataframe to include only 'Follow Up' and 'Predictive' Remark Types
-    df_filtered = df[df['Remark Type'].isin(['Predictive', 'Follow Up'])]
-
-    for (date, client), client_group in df_filtered[~df_filtered['CLIENT'].str.upper().isin(['SYSTEM'])].groupby([df_filtered['Date'].dt.date, 'CLIENT']):
-        accounts = client_group[client_group['Remark Type'].isin(['Predictive', 'Follow Up'])]['Account No.'].nunique()
-        total_dialed = client_group[client_group['Remark Type'].isin(['Predictive', 'Follow Up'])]['Account No.'].count()
-        connected = client_group[client_group['Call Status'] == 'CONNECTED']['Account No.'].nunique()
-        penetration_rate = (total_dialed / accounts * 100) if accounts != 0 else None
-        connected_acc = client_group[client_group['Call Status'] == 'CONNECTED']['Account No.'].count()
-        connected_rate = (connected_acc / total_dialed * 100) if total_dialed != 0 else None
-        ptp_acc = client_group[(client_group['Status'].str.contains('PTP', na=False)) & (client_group['PTP Amount'] != 0)]['Account No.'].nunique()
-        ptp_rate = (ptp_acc / connected * 100) if connected != 0 else None
-        total_ptp_amount = client_group[(client_group['Status'].str.contains('PTP', na=False)) & (client_group['PTP Amount'] != 0)]['PTP Amount'].sum()
-        total_balance = client_group[(client_group['PTP Amount'] != 0)]['Balance'].sum()
-        system_drop = client_group[(client_group['Status'].str.contains('DROPPED', na=False)) & (client_group['Remark By'] == 'SYSTEM')]['Account No.'].count()
-        call_drop_count = client_group[(client_group['Status'].str.contains('NEGATIVE CALLOUTS - DROP CALL', na=False)) & 
-                                       (~client_group['Remark By'].str.upper().isin(['SYSTEM']))]['Account No.'].count()
-        call_drop_ratio = (system_drop / connected_acc * 100) if connected_acc != 0 else None
-
-        summary_table = pd.concat([summary_table, pd.DataFrame([{
-            'Day': date,
-            'CLIENT': client,
-            'ACCOUNTS': accounts,
-            'TOTAL DIALED': total_dialed,
-            'PENETRATION RATE (%)': f"{round(penetration_rate)}%" if penetration_rate is not None else None,
-            'CONNECTED #': connected,
-            'CONNECTED RATE (%)': f"{round(connected_rate)}%" if connected_rate is not None else None,
-            'CONNECTED ACC': connected_acc,
-            'PTP ACC': ptp_acc,
-            'PTP RATE': f"{round(ptp_rate)}%" if ptp_rate is not None else None,
-            'TOTAL PTP AMOUNT': total_ptp_amount,
-            'TOTAL BALANCE': total_balance,
-            'CALL DROP #': call_drop_count,
-            'SYSTEM DROP': system_drop,
-            'CALL DROP RATIO #': f"{round(call_drop_ratio)}%" if call_drop_ratio is not None else None,
-        }])], ignore_index=True)
-
-    return summary_table
-
 
         # Display Overall Predictive Summary Table
         st.write("## Overall Predictive Summary Table")
