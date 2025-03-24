@@ -64,6 +64,7 @@ if uploaded_file is not None:
     else:
         # Overall Combined Summary Table
 # Overall Combined Summary Table
+# Overall Combined Summary Table
 def calculate_combined_summary(df):
     summary_table = pd.DataFrame(columns=[ 
         'Day', 'CLIENT', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
@@ -90,6 +91,7 @@ def calculate_combined_summary(df):
                                 (~group['Remark By'].str.upper().isin(['SYSTEM']))]['Account No.'].count()
         call_drop_ratio = (system_drop / connected_acc * 100) if connected_acc != 0 else None
 
+        # This part was correct, and here the indentation is fixed.
         summary_table = pd.concat([summary_table, pd.DataFrame([{
             'Day': date,
             'CLIENT': client,  # Add the Client (Campaign)
@@ -109,6 +111,7 @@ def calculate_combined_summary(df):
         }])], ignore_index=True)
 
     return summary_table
+
 
         # Display Combined Summary Table
         st.write("## Overall Combined Summary Table")
