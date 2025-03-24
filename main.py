@@ -22,7 +22,7 @@ if uploaded_file is not None:
     
     excluded_remarks = [
         "Broken Promise", "New files imported", "Updates when case reassign to another collector", 
-        "NDF IN ICS", "FOR PULL OUT (END OF HANDLING PERIOD)", "END OF HANDLING PERIOD"
+        "NDF IN ICS", "FOR PULL OUT (END OF HANDLING PERIOD)", "END OF HANDLING PERIOD" , "New Assignment -" ,
     ]
     df = df[~df['REMARK'].str.contains('|'.join(excluded_remarks), case=False, na=False)]
     df = df[~df['CALL STATUS'].str.contains('OTHERS', case=False, na=False)]
