@@ -61,6 +61,9 @@ if uploaded_file is not None:
     # Exclude rows where "CALL STATUS" contains "OTHERS"
     df = df[~df['CALL STATUS'].str.contains('OTHERS', case=False, na=False)]
 
+    # Extract cycle from 'SERVICE NO.'
+    df['CYCLE'] = df['SERVICE NO.'].str.extract(r'(CYCLE \d+)')
+
     def calculate_summary(df, remark_types, cycle_grouping=False):
         summary_table = pd.DataFrame(columns=[ 
             'CYCLE' if cycle_grouping else 'DAY', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
