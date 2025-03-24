@@ -116,7 +116,7 @@ if uploaded_file is not None:
         # Overall Predictive Summary Table
         def calculate_predictive_summary(df):
             summary_table = pd.DataFrame(columns=[ 
-                'Day', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
+                'Day', 'CLIENT', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
                 'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'TOTAL PTP AMOUNT', 
                 'TOTAL BALANCE', 'CALL DROP #', 'SYSTEM DROP', 'CALL DROP RATIO #'
             ]) 
@@ -124,7 +124,7 @@ if uploaded_file is not None:
             # Filter the dataframe to include only 'Follow Up' and 'Predictive' Remark Types
             df_filtered = df[df['Remark Type'].isin(['Predictive', 'Follow Up'])]
 
-            for date, group in df_filtered.groupby(df_filtered['Date'].dt.date):
+            for (date, client), client_group in filtered_df[~filtered_df['CLIENT'].str.upper().isin(['SYSTEM'])].groupby([filtered_df['Date'].dt.date, 'CLIENT']):
                 accounts = group[group['Remark Type'].isin(['Predictive', 'Follow Up'])]['Account No.'].nunique()
                 total_dialed = group[group['Remark Type'].isin(['Predictive', 'Follow Up'])]['Account No.'].count()
                 connected = group[group['Call Status'] == 'CONNECTED']['Account No.'].nunique()
@@ -142,6 +142,7 @@ if uploaded_file is not None:
 
                 summary_table = pd.concat([summary_table, pd.DataFrame([{
                     'Day': date,
+                    'CLIENT': client,
                     'ACCOUNTS': accounts,
                     'TOTAL DIALED': total_dialed,
                     'PENETRATION RATE (%)': f"{round(penetration_rate)}%" if penetration_rate is not None else None,
