@@ -121,11 +121,3 @@ if uploaded_file is not None:
     st.write("## Overall Manual Summary Table")
     manual_summary_table = calculate_summary(df, ['Outgoing'])
     st.write(manual_summary_table)
-
-    st.write("## Per Cycle Predictive Summary Table")
-    cycle_predictive_summary = calculate_summary(df[df['CYCLE'].notna()], ['Predictive', 'Follow Up'], cycle_grouping=True)
-    st.write(cycle_predictive_summary)
-
-    st.write("## Per Cycle Manual Summary Table")
-    cycle_manual_summary = calculate_summary(df[df['CYCLE'].notna()], ['Outgoing'], cycle_grouping=True)
-    st.write(cycle_manual_summary)
