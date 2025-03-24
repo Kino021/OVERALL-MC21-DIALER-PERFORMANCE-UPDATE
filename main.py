@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import datetime
 
 st.set_page_config(layout="wide", page_title="Daily Remark Summary", page_icon="📊", initial_sidebar_state="expanded")
 
@@ -33,10 +34,14 @@ if uploaded_file is not None:
     df['CYCLE'] = df['CYCLE'].fillna('Unknown')
     df['CYCLE'] = df['CYCLE'].astype(str)
 
+    def format_seconds_to_hms(seconds):
+        """Convert total seconds to HH:MM:SS format."""
+        return str(datetime.timedelta(seconds=int(seconds)))
+
     def calculate_summary(df, remark_types, manual_correction=False):
         summary_columns = [
-            'DATE', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
-            'CONNECTED RATE (%)', 'CONNECTED ACC', 'PTP ACC', 'PTP RATE', 'TOTAL PTP AMOUNT', 
+            'DATE', 'CLIENT', 'COLLECTORS', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
+            'CONNECTED RATE (%)', 'CONNECTED ACC', 'TOTAL TALK TIME', 'PTP ACC', 'PTP RATE', 'TOTAL PTP AMOUNT', 
             'TOTAL BALANCE', 'CALL DROP #', 'SYSTEM DROP', 'CALL DROP RATIO #'
         ]
         
@@ -45,7 +50,7 @@ if uploaded_file is not None:
         df_filtered = df[df['REMARK TYPE'].isin(remark_types)].copy()
         df_filtered['DATE'] = df_filtered['DATE'].dt.date  
 
-        for date, group in df_filtered.groupby('DATE'):
+        for (date, client), group in df_filtered.groupby(['DATE', 'CLIENT']):
             accounts = group['ACCOUNT NO.'].nunique()
             total_dialed = group['ACCOUNT NO.'].count()
             connected = group[group['CALL STATUS'] == 'CONNECTED']['ACCOUNT NO.'].nunique()
@@ -65,14 +70,23 @@ if uploaded_file is not None:
             else:
                 call_drop_ratio = (system_drop / connected_acc * 100) if connected_acc != 0 else 0
 
+            # Count unique collectors where 'Call Duration' is not empty
+            collectors = group[group['CALL DURATION'].notna()]['REMARK BY'].nunique()
+
+            # Sum up total talk time (Talk Time Duration) and format as HH:MM:SS
+            total_talk_time = format_seconds_to_hms(group['TALK TIME DURATION'].sum())
+
             summary_data = {
                 'DATE': date,
+                'CLIENT': client,
+                'COLLECTORS': collectors,
                 'ACCOUNTS': accounts,
                 'TOTAL DIALED': total_dialed,
                 'PENETRATION RATE (%)': f"{round(penetration_rate)}%",
                 'CONNECTED #': connected,
                 'CONNECTED RATE (%)': f"{round(connected_rate)}%",
                 'CONNECTED ACC': connected_acc,
+                'TOTAL TALK TIME': total_talk_time,
                 'PTP ACC': ptp_acc,
                 'PTP RATE': f"{round(ptp_rate)}%",
                 'TOTAL PTP AMOUNT': total_ptp_amount,
@@ -86,14 +100,15 @@ if uploaded_file is not None:
         
         return summary_table.sort_values(by=['DATE'])
 
-    def calculate_cycle_summary(df, remark_types, manual_correction=False):
+    def display_cycle_summary(df, remark_types, manual_correction=False):
         unique_cycles = df['CYCLE'].unique()
         for cycle in unique_cycles:
             if cycle == 'Unknown':
                 continue
-            st.write(f"## Summary for Cycle {cycle}")
-            cycle_df = df[df['CYCLE'] == cycle]
-            st.write(calculate_summary(cycle_df, remark_types, manual_correction))
+            with st.container():
+                st.subheader(f"Summary for Cycle {cycle}")
+                cycle_df = df[df['CYCLE'] == cycle]
+                st.write(calculate_summary(cycle_df, remark_types, manual_correction))
 
     st.write("## Overall Combined Summary Table")
     st.write(calculate_summary(df, ['Predictive', 'Follow Up', 'Outgoing']))
@@ -105,7 +120,7 @@ if uploaded_file is not None:
     st.write(calculate_summary(df, ['Outgoing'], manual_correction=True))
 
     st.write("## Per Cycle Predictive Summary Tables")
-    calculate_cycle_summary(df, ['Predictive', 'Follow Up'])
+    display_cycle_summary(df, ['Predictive', 'Follow Up'])
 
     st.write("## Per Cycle Manual Summary Tables")
-    calculate_cycle_summary(df, ['Outgoing'], manual_correction=True)
+    display_cycle_summary(df, ['Outgoing'], manual_correction=True)
