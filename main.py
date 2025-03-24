@@ -71,7 +71,7 @@ if uploaded_file is not None:
             ]) 
 
             for date, group in df.groupby(df['Date'].dt.date):
-                campaign = group.get('Campaign', 'Unknown Campaign')  # Add default value if 'Campaign' is missing
+                campaign = group.get('CLIENT')  # Add default value if 'Campaign' is missing
 
                 accounts = group[group['Remark Type'].isin(['Predictive', 'Follow Up', 'Outgoing'])]['Account No.'].nunique()
                 total_dialed = group[group['Remark Type'].isin(['Predictive', 'Follow Up', 'Outgoing'])]['Account No.'].count()
