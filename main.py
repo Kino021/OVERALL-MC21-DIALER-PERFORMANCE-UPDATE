@@ -107,52 +107,27 @@ if uploaded_file is not None:
             with st.container():
                 st.subheader(f"Summary for Cycle {cycle}")
                 cycle_df = df[df['CYCLE'] == cycle]
-                summary_df = calculate_summary(cycle_df, remark_types, manual_correction)
-                st.write(summary_df)
-                st.download_button(
-                    label=f"Download Cycle {cycle} Summary as CSV",
-                    data=convert_df_to_csv(summary_df),
-                    file_name=f"cycle_{cycle}_summary.csv",
-                    mime="text/csv",
-                )
+                st.write(calculate_summary(cycle_df, remark_types, manual_correction))
 
-    # Overall Combined Summary
+    # Overall Combined Summary with Download Button
     st.write("## Overall Combined Summary Table")
     combined_summary = calculate_summary(df, ['Predictive', 'Follow Up', 'Outgoing'])
     st.write(combined_summary)
     st.download_button(
-        label="Download Combined Summary as CSV",
+        label="Download Overall Summary as CSV",
         data=convert_df_to_csv(combined_summary),
-        file_name="combined_summary.csv",
+        file_name="overall_summary.csv",
         mime="text/csv",
     )
 
-    # Overall Predictive Summary
     st.write("## Overall Predictive Summary Table")
-    predictive_summary = calculate_summary(df, ['Predictive', 'Follow Up'])
-    st.write(predictive_summary)
-    st.download_button(
-        label="Download Predictive Summary as CSV",
-        data=convert_df_to_csv(predictive_summary),
-        file_name="predictive_summary.csv",
-        mime="text/csv",
-    )
+    st.write(calculate_summary(df, ['Predictive', 'Follow Up']))
 
-    # Overall Manual Summary
     st.write("## Overall Manual Summary Table")
-    manual_summary = calculate_summary(df, ['Outgoing'], manual_correction=True)
-    st.write(manual_summary)
-    st.download_button(
-        label="Download Manual Summary as CSV",
-        data=convert_df_to_csv(manual_summary),
-        file_name="manual_summary.csv",
-        mime="text/csv",
-    )
+    st.write(calculate_summary(df, ['Outgoing'], manual_correction=True))
 
-    # Per Cycle Predictive Summaries
     st.write("## Per Cycle Predictive Summary Tables")
     display_cycle_summary(df, ['Predictive', 'Follow Up'])
 
-    # Per Cycle Manual Summaries
     st.write("## Per Cycle Manual Summary Tables")
     display_cycle_summary(df, ['Outgoing'], manual_correction=True)
