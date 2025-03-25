@@ -20,9 +20,42 @@ uploaded_file = st.sidebar.file_uploader("Upload Daily Remark File", type="xlsx"
 
 def to_excel(df_dict):
     output = BytesIO()
-    with ExcelWriter(output, engine='xlsxwriter') as writer:
+    with ExcelWriter(output, engine='xlsxwriter', date_format='yyyy-mm-dd') as writer:
+        workbook = writer.book
+        
+        # Define formats
+        center_format = workbook.add_format({
+            'align': 'center',
+            'valign': 'vcenter',
+            'border': 1
+        })
+        header_format = workbook.add_format({
+            'align': 'center',
+            'valign': 'vcenter',
+            'border': 1,
+            'bold': True
+        })
+        
         for sheet_name, df in df_dict.items():
             df.to_excel(writer, sheet_name=sheet_name, index=False)
+            worksheet = writer.sheets[sheet_name]
+            
+            # Set column widths and apply formatting
+            for col_num, col_name in enumerate(df.columns):
+                max_len = max(
+                    df[col_name].astype(str).str.len().max(),
+                    len(col_name)
+                ) + 2  # Add some padding
+                worksheet.set_column(col_num, col_num, max_len, center_format)
+                
+                # Write header with bold format
+                worksheet.write(0, col_num, col_name, header_format)
+            
+            # Ensure DATE column uses proper date format
+            if 'DATE' in df.columns:
+                col_idx = df.columns.get_loc('DATE')
+                worksheet.set_column(col_idx, col_idx, 15, center_format)
+
     return output.getvalue()
 
 if uploaded_file is not None:
@@ -37,14 +70,12 @@ if uploaded_file is not None:
     df = df[~df['REMARK'].str.contains('|'.join(excluded_remarks), case=False, na=False)]
     df = df[~df['CALL STATUS'].str.contains('OTHERS', case=False, na=False)]
     
-    # Extract numeric cycle from 'SERVICE NO.'
     df['SERVICE NO.'] = df['SERVICE NO.'].astype(str)
     df['CYCLE'] = df['SERVICE NO.'].str.extract(r'(\d+)')
     df['CYCLE'] = df['CYCLE'].fillna('Unknown')
     df['CYCLE'] = df['CYCLE'].astype(str)
 
     def format_seconds_to_hms(seconds):
-        """Convert total seconds to HH:MM:SS format."""
         return str(datetime.timedelta(seconds=int(seconds)))
 
     def calculate_summary(df, remark_types, manual_correction=False):
@@ -116,14 +147,12 @@ if uploaded_file is not None:
             result[f"Cycle {cycle}"] = calculate_summary(cycle_df, remark_types, manual_correction)
         return result
 
-    # Calculate all summaries
     combined_summary = calculate_summary(df, ['Predictive', 'Follow Up', 'Outgoing'])
     predictive_summary = calculate_summary(df, ['Predictive', 'Follow Up'])
     manual_summary = calculate_summary(df, ['Outgoing'], manual_correction=True)
     predictive_cycle_summaries = get_cycle_summary(df, ['Predictive', 'Follow Up'])
     manual_cycle_summaries = get_cycle_summary(df, ['Outgoing'], manual_correction=True)
 
-    # Display tables
     st.write("## Overall Combined Summary Table")
     st.write(combined_summary)
 
@@ -145,7 +174,6 @@ if uploaded_file is not None:
             st.subheader(f"Summary for {cycle}")
             st.write(table)
 
-    # Prepare all data for download
     excel_data = {
         'Combined Summary': combined_summary,
         'Predictive Summary': predictive_summary,
@@ -154,7 +182,6 @@ if uploaded_file is not None:
         **{f"Manual {k}": v for k, v in manual_cycle_summaries.items()}
     }
 
-    # Add download button
     st.download_button(
         label="Download All Summaries as Excel",
         data=to_excel(excel_data),
