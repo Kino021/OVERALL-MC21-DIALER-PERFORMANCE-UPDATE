@@ -48,6 +48,12 @@ def to_excel(df_dict):
             'border': 1,
             'num_format': '0%'
         })
+        date_format = workbook.add_format({
+            'align': 'center',
+            'valign': 'vcenter',
+            'border': 1,
+            'num_format': 'yyyy-mm-dd'  # Explicit date format
+        })
         
         for sheet_name, df in df_dict.items():
             df.to_excel(writer, sheet_name=sheet_name, index=False)
@@ -61,10 +67,16 @@ def to_excel(df_dict):
             for row_num in range(1, len(df) + 1):  # Start from 1 to skip header
                 for col_num, col_name in enumerate(df.columns):
                     value = df.iloc[row_num - 1, col_num]
-                    if col_name in ['TOTAL PTP AMOUNT', 'TOTAL BALANCE']:
+                    if col_name == 'DATE':
+                        # Ensure value is a datetime object and write with date format
+                        if isinstance(value, (pd.Timestamp, datetime.date)):
+                            worksheet.write_datetime(row_num, col_num, value, date_format)
+                        else:
+                            worksheet.write(row_num, col_num, value, date_format)
+                    elif col_name in ['TOTAL PTP AMOUNT', 'TOTAL BALANCE']:
                         worksheet.write(row_num, col_num, value, comma_format)
                     elif col_name in ['PENETRATION RATE (%)', 'CONNECTED RATE (%)', 'PTP RATE', 'CALL DROP RATIO #']:
-                        worksheet.write(row_num, col_num, value / 100, percent_format)  # Convert to decimal
+                        worksheet.write(row_num, col_num, value / 100, percent_format)
                     else:
                         worksheet.write(row_num, col_num, value, center_format)
             
@@ -139,18 +151,18 @@ if uploaded_file is not None:
                 'COLLECTORS': collectors,
                 'ACCOUNTS': accounts,
                 'TOTAL DIALED': total_dialed,
-                'PENETRATION RATE (%)': round(penetration_rate),  # Store as number
+                'PENETRATION RATE (%)': round(penetration_rate),
                 'CONNECTED #': connected,
-                'CONNECTED RATE (%)': round(connected_rate),     # Store as number
+                'CONNECTED RATE (%)': round(connected_rate),
                 'CONNECTED ACC': connected_acc,
                 'TOTAL TALK TIME': total_talk_time,
                 'PTP ACC': ptp_acc,
-                'PTP RATE': round(ptp_rate),                     # Store as number
+                'PTP RATE': round(ptp_rate),
                 'TOTAL PTP AMOUNT': total_ptp_amount,
                 'TOTAL BALANCE': total_balance,
                 'CALL DROP #': call_drop_count,
                 'SYSTEM DROP': system_drop,
-                'CALL DROP RATIO #': round(call_drop_ratio),     # Store as number
+                'CALL DROP RATIO #': round(call_drop_ratio),
             }
             
             summary_table = pd.concat([summary_table, pd.DataFrame([summary_data])], ignore_index=True)
