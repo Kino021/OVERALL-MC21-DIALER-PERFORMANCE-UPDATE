@@ -40,11 +40,12 @@ if uploaded_file is not None:
     def format_seconds_to_hms(seconds):
         return str(datetime.timedelta(seconds=int(seconds)))
 
-    def calculate_summary(df, remark_types, manual_correction=False):
+    def calculate_summary(df, remark_types, manual_correction=False, category=""):
         summary_columns = [
-            'DATE', 'CLIENT', 'COLLECTORS', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
-            'CONNECTED RATE (%)', 'CONNECTED ACC', 'TOTAL TALK TIME', 'PTP ACC', 'PTP RATE', 'TOTAL PTP AMOUNT', 
-            'TOTAL BALANCE', 'CALL DROP #', 'SYSTEM DROP', 'CALL DROP RATIO #'
+            'CATEGORY', 'CYCLE', 'DATE', 'CLIENT', 'COLLECTORS', 'ACCOUNTS', 'TOTAL DIALED', 
+            'PENETRATION RATE (%)', 'CONNECTED #', 'CONNECTED RATE (%)', 'CONNECTED ACC', 
+            'TOTAL TALK TIME', 'PTP ACC', 'PTP RATE', 'TOTAL PTP AMOUNT', 'TOTAL BALANCE', 
+            'CALL DROP #', 'SYSTEM DROP', 'CALL DROP RATIO #'
         ]
         
         summary_table = pd.DataFrame(columns=summary_columns)
@@ -76,6 +77,8 @@ if uploaded_file is not None:
             total_talk_time = format_seconds_to_hms(group['TALK TIME DURATION'].sum())
 
             summary_data = {
+                'CATEGORY': category,
+                'CYCLE': 'Overall' if not category.startswith('Per Cycle') else '',
                 'DATE': date,
                 'CLIENT': client,
                 'COLLECTORS': collectors,
@@ -99,35 +102,56 @@ if uploaded_file is not None:
         
         return summary_table.sort_values(by=['DATE'])
 
-    def display_cycle_summary(df, remark_types, manual_correction=False):
+    def display_cycle_summary(df, remark_types, manual_correction=False, category=""):
         unique_cycles = df['CYCLE'].unique()
+        all_cycle_data = pd.DataFrame()
         for cycle in unique_cycles:
             if cycle == 'Unknown':
                 continue
             with st.container():
                 st.subheader(f"Summary for Cycle {cycle}")
                 cycle_df = df[df['CYCLE'] == cycle]
-                st.write(calculate_summary(cycle_df, remark_types, manual_correction))
+                cycle_summary = calculate_summary(cycle_df, remark_types, manual_correction, category)
+                cycle_summary['CYCLE'] = cycle
+                st.write(cycle_summary)
+                all_cycle_data = pd.concat([all_cycle_data, cycle_summary], ignore_index=True)
+        return all_cycle_data
 
-    # Overall Combined Summary with Download Button
+    # Collect all data
+    all_data = pd.DataFrame()
+
+    # Overall Combined Summary
     st.write("## Overall Combined Summary Table")
-    combined_summary = calculate_summary(df, ['Predictive', 'Follow Up', 'Outgoing'])
+    combined_summary = calculate_summary(df, ['Predictive', 'Follow Up', 'Outgoing'], category="Overall Combined")
     st.write(combined_summary)
+    all_data = pd.concat([all_data, combined_summary], ignore_index=True)
+
+    # Overall Predictive Summary
+    st.write("## Overall Predictive Summary Table")
+    predictive_summary = calculate_summary(df, ['Predictive', 'Follow Up'], category="Overall Predictive")
+    st.write(predictive_summary)
+    all_data = pd.concat([all_data, predictive_summary], ignore_index=True)
+
+    # Overall Manual Summary
+    st.write("## Overall Manual Summary Table")
+    manual_summary = calculate_summary(df, ['Outgoing'], manual_correction=True, category="Overall Manual")
+    st.write(manual_summary)
+    all_data = pd.concat([all_data, manual_summary], ignore_index=True)
+
+    # Per Cycle Predictive Summaries
+    st.write("## Per Cycle Predictive Summary Tables")
+    predictive_cycle_summary = display_cycle_summary(df, ['Predictive', 'Follow Up'], category="Per Cycle Predictive")
+    all_data = pd.concat([all_data, predictive_cycle_summary], ignore_index=True)
+
+    # Per Cycle Manual Summaries
+    st.write("## Per Cycle Manual Summary Tables")
+    manual_cycle_summary = display_cycle_summary(df, ['Outgoing'], manual_correction=True, category="Per Cycle Manual")
+    all_data = pd.concat([all_data, manual_cycle_summary], ignore_index=True)
+
+    # Single Download Button for All Data
     st.download_button(
-        label="Download Overall Summary as CSV",
-        data=convert_df_to_csv(combined_summary),
-        file_name="overall_summary.csv",
+        label="Download All Summary Data as CSV",
+        data=convert_df_to_csv(all_data),
+        file_name="all_summary_data.csv",
         mime="text/csv",
     )
-
-    st.write("## Overall Predictive Summary Table")
-    st.write(calculate_summary(df, ['Predictive', 'Follow Up']))
-
-    st.write("## Overall Manual Summary Table")
-    st.write(calculate_summary(df, ['Outgoing'], manual_correction=True))
-
-    st.write("## Per Cycle Predictive Summary Tables")
-    display_cycle_summary(df, ['Predictive', 'Follow Up'])
-
-    st.write("## Per Cycle Manual Summary Tables")
-    display_cycle_summary(df, ['Outgoing'], manual_correction=True)
