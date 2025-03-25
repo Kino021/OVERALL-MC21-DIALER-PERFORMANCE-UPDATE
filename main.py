@@ -14,6 +14,10 @@ def load_data(uploaded_file):
     df = df[df['DATE'].dt.weekday != 6]  # Exclude Sundays
     return df
 
+# Convert DataFrame to CSV for download
+def convert_df_to_csv(df):
+    return df.to_csv(index=False).encode('utf-8')
+
 uploaded_file = st.sidebar.file_uploader("Upload Daily Remark File", type="xlsx")
 
 if uploaded_file is not None:
@@ -28,14 +32,12 @@ if uploaded_file is not None:
     df = df[~df['REMARK'].str.contains('|'.join(excluded_remarks), case=False, na=False)]
     df = df[~df['CALL STATUS'].str.contains('OTHERS', case=False, na=False)]
     
-    # Extract numeric cycle from 'SERVICE NO.'
     df['SERVICE NO.'] = df['SERVICE NO.'].astype(str)
     df['CYCLE'] = df['SERVICE NO.'].str.extract(r'(\d+)')
     df['CYCLE'] = df['CYCLE'].fillna('Unknown')
     df['CYCLE'] = df['CYCLE'].astype(str)
 
     def format_seconds_to_hms(seconds):
-        """Convert total seconds to HH:MM:SS format."""
         return str(datetime.timedelta(seconds=int(seconds)))
 
     def calculate_summary(df, remark_types, manual_correction=False):
@@ -63,17 +65,14 @@ if uploaded_file is not None:
             total_balance = group[(group['PTP AMOUNT'] != 0)]['BALANCE'].sum()
             system_drop = group[(group['STATUS'].str.contains('DROPPED', na=False)) & (group['REMARK BY'] == 'SYSTEM')]['ACCOUNT NO.'].count()
             call_drop_count = group[(group['STATUS'].str.contains('NEGATIVE CALLOUTS - DROP CALL', na=False)) & 
-                                    (~group['REMARK BY'].str.upper().isin(['SYSTEM']))]['ACCOUNT NO.'].count()
+                                  (~group['REMARK BY'].str.upper().isin(['SYSTEM']))]['ACCOUNT NO.'].count()
             
             if manual_correction:
                 call_drop_ratio = (call_drop_count / connected_acc * 100) if connected_acc != 0 else 0
             else:
                 call_drop_ratio = (system_drop / connected_acc * 100) if connected_acc != 0 else 0
 
-            # Count unique collectors where 'Call Duration' is not empty
             collectors = group[group['CALL DURATION'].notna()]['REMARK BY'].nunique()
-
-            # Sum up total talk time (Talk Time Duration) and format as HH:MM:SS
             total_talk_time = format_seconds_to_hms(group['TALK TIME DURATION'].sum())
 
             summary_data = {
@@ -108,19 +107,52 @@ if uploaded_file is not None:
             with st.container():
                 st.subheader(f"Summary for Cycle {cycle}")
                 cycle_df = df[df['CYCLE'] == cycle]
-                st.write(calculate_summary(cycle_df, remark_types, manual_correction))
+                summary_df = calculate_summary(cycle_df, remark_types, manual_correction)
+                st.write(summary_df)
+                st.download_button(
+                    label=f"Download Cycle {cycle} Summary as CSV",
+                    data=convert_df_to_csv(summary_df),
+                    file_name=f"cycle_{cycle}_summary.csv",
+                    mime="text/csv",
+                )
 
+    # Overall Combined Summary
     st.write("## Overall Combined Summary Table")
-    st.write(calculate_summary(df, ['Predictive', 'Follow Up', 'Outgoing']))
+    combined_summary = calculate_summary(df, ['Predictive', 'Follow Up', 'Outgoing'])
+    st.write(combined_summary)
+    st.download_button(
+        label="Download Combined Summary as CSV",
+        data=convert_df_to_csv(combined_summary),
+        file_name="combined_summary.csv",
+        mime="text/csv",
+    )
 
+    # Overall Predictive Summary
     st.write("## Overall Predictive Summary Table")
-    st.write(calculate_summary(df, ['Predictive', 'Follow Up']))
+    predictive_summary = calculate_summary(df, ['Predictive', 'Follow Up'])
+    st.write(predictive_summary)
+    st.download_button(
+        label="Download Predictive Summary as CSV",
+        data=convert_df_to_csv(predictive_summary),
+        file_name="predictive_summary.csv",
+        mime="text/csv",
+    )
 
+    # Overall Manual Summary
     st.write("## Overall Manual Summary Table")
-    st.write(calculate_summary(df, ['Outgoing'], manual_correction=True))
+    manual_summary = calculate_summary(df, ['Outgoing'], manual_correction=True)
+    st.write(manual_summary)
+    st.download_button(
+        label="Download Manual Summary as CSV",
+        data=convert_df_to_csv(manual_summary),
+        file_name="manual_summary.csv",
+        mime="text/csv",
+    )
 
+    # Per Cycle Predictive Summaries
     st.write("## Per Cycle Predictive Summary Tables")
     display_cycle_summary(df, ['Predictive', 'Follow Up'])
 
+    # Per Cycle Manual Summaries
     st.write("## Per Cycle Manual Summary Tables")
     display_cycle_summary(df, ['Outgoing'], manual_correction=True)
