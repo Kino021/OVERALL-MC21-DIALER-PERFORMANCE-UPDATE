@@ -32,7 +32,8 @@ def to_excel(df_dict):
         header_format = workbook.add_format({
             'align': 'center',
             'valign': 'vcenter',
-            'border': 1,
+            'bg_color': 'red',
+            'font_color': 'white',
             'bold': True
         })
         
@@ -40,21 +41,23 @@ def to_excel(df_dict):
             df.to_excel(writer, sheet_name=sheet_name, index=False)
             worksheet = writer.sheets[sheet_name]
             
-            # Set column widths and apply formatting
+            # Write headers with red background
+            for col_num, col_name in enumerate(df.columns):
+                worksheet.write(0, col_num, col_name, header_format)
+            
+            # Apply centered format with borders only to data rows
+            for row_num in range(1, len(df) + 1):  # Start from 1 to skip header
+                for col_num in range(len(df.columns)):
+                    value = df.iloc[row_num - 1, col_num]
+                    worksheet.write(row_num, col_num, value, center_format)
+            
+            # Set column widths
             for col_num, col_name in enumerate(df.columns):
                 max_len = max(
                     df[col_name].astype(str).str.len().max(),
                     len(col_name)
-                ) + 2  # Add some padding
-                worksheet.set_column(col_num, col_num, max_len, center_format)
-                
-                # Write header with bold format
-                worksheet.write(0, col_num, col_name, header_format)
-            
-            # Ensure DATE column uses proper date format
-            if 'DATE' in df.columns:
-                col_idx = df.columns.get_loc('DATE')
-                worksheet.set_column(col_idx, col_idx, 15, center_format)
+                ) + 2
+                worksheet.set_column(col_num, col_num, max_len)
 
     return output.getvalue()
 
