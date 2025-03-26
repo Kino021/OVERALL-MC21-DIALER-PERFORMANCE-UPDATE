@@ -23,13 +23,13 @@ def to_excel(df_dict):
     with ExcelWriter(output, engine='xlsxwriter', date_format='yyyy-mm-dd') as writer:
         workbook = writer.book
         
-        # Define formats
+        # Define formats (unchanged)
         title_format = workbook.add_format({
             'bold': True,
             'font_size': 14,
             'align': 'center',
             'valign': 'vcenter',
-            'bg_color': '#FFFF00',  # Yellow background for title
+            'bg_color': '#FFFF00',
         })
         center_format = workbook.add_format({
             'align': 'center',
@@ -61,21 +61,23 @@ def to_excel(df_dict):
             'border': 1,
             'num_format': 'yyyy-mm-dd'
         })
+        time_format = workbook.add_format({
+            'align': 'center',
+            'valign': 'vcenter',
+            'border': 1,
+            'num_format': 'hh:mm:ss'
+        })
         
         for sheet_name, df in df_dict.items():
-            # Write the title at the top of the sheet and start data immediately below
-            df.to_excel(writer, sheet_name=sheet_name, index=False, startrow=1)  # Start data at row 1 (headers at row 2)
+            df.to_excel(writer, sheet_name=sheet_name, index=False, startrow=1)
             worksheet = writer.sheets[sheet_name]
             
-            # Write the title (sheet name) in the first row, centered across columns
             worksheet.merge_range('A1:' + chr(65 + len(df.columns) - 1) + '1', sheet_name, title_format)
             
-            # Write headers with red background (row 2)
             for col_num, col_name in enumerate(df.columns):
-                worksheet.write(1, col_num, col_name, header_format)  # Headers start at row 1 (index 1)
+                worksheet.write(1, col_num, col_name, header_format)
             
-            # Apply formatting to data rows (starting from row 3)
-            for row_num in range(2, len(df) + 2):  # Start from row 2 (index 2) to skip title and header
+            for row_num in range(2, len(df) + 2):
                 for col_num, col_name in enumerate(df.columns):
                     value = df.iloc[row_num - 2, col_num]
                     if col_name == 'DATE':
@@ -87,10 +89,11 @@ def to_excel(df_dict):
                         worksheet.write(row_num, col_num, value, comma_format)
                     elif col_name in ['PENETRATION RATE (%)', 'CONNECTED RATE (%)', 'PTP RATE', 'CALL DROP RATIO #']:
                         worksheet.write(row_num, col_num, value / 100, percent_format)
+                    elif col_name in ['TOTAL TALK TIME', 'TALK TIME AVE']:
+                        worksheet.write(row_num, col_num, value, time_format)
                     else:
                         worksheet.write(row_num, col_num, value, center_format)
             
-            # Set column widths
             for col_num, col_name in enumerate(df.columns):
                 max_len = max(
                     df[col_name].astype(str).str.len().max(),
@@ -123,8 +126,8 @@ if uploaded_file is not None:
     def calculate_summary(df, remark_types, manual_correction=False):
         summary_columns = [
             'DATE', 'CLIENT', 'COLLECTORS', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
-            'CONNECTED RATE (%)', 'CONNECTED ACC', 'TOTAL TALK TIME', 'PTP ACC', 'PTP RATE', 'TOTAL PTP AMOUNT', 
-            'TOTAL BALANCE', 'CALL DROP #', 'SYSTEM DROP', 'CALL DROP RATIO #'
+            'CONNECTED RATE (%)', 'CONNECTED ACC', 'TOTAL TALK TIME', 'TALK TIME AVE', 'PTP ACC', 'PTP RATE', 
+            'TOTAL PTP AMOUNT', 'TOTAL BALANCE', 'CALL DROP #', 'SYSTEM DROP', 'CALL DROP RATIO #'
         ]
         
         summary_table = pd.DataFrame(columns=summary_columns)
@@ -145,7 +148,7 @@ if uploaded_file is not None:
             total_balance = group[(group['PTP AMOUNT'] != 0)]['BALANCE'].sum()
             system_drop = group[(group['STATUS'].str.contains('DROPPED', na=False)) & (group['REMARK BY'] == 'SYSTEM')]['ACCOUNT NO.'].count()
             call_drop_count = group[(group['STATUS'].str.contains('NEGATIVE CALLOUTS - DROP CALL', na=False)) & 
-                                    (~group['REMARK BY'].str.upper().isin(['SYSTEM']))]['ACCOUNT NO.'].count()
+                                  (~group['REMARK BY'].str.upper().isin(['SYSTEM']))]['ACCOUNT NO.'].count()
             
             if manual_correction:
                 call_drop_ratio = (call_drop_count / connected_acc * 100) if connected_acc != 0 else 0
@@ -153,7 +156,9 @@ if uploaded_file is not None:
                 call_drop_ratio = (system_drop / connected_acc * 100) if connected_acc != 0 else 0
 
             collectors = group[group['CALL DURATION'].notna()]['REMARK BY'].nunique()
-            total_talk_time = format_seconds_to_hms(group['TALK TIME DURATION'].sum())
+            total_talk_seconds = group['TALK TIME DURATION'].sum()
+            total_talk_time = format_seconds_to_hms(total_talk_seconds)
+            talk_time_ave = format_seconds_to_hms(total_talk_seconds / collectors) if collectors != 0 else "00:00:00"
 
             summary_data = {
                 'DATE': date,
@@ -166,6 +171,7 @@ if uploaded_file is not None:
                 'CONNECTED RATE (%)': round(connected_rate),
                 'CONNECTED ACC': connected_acc,
                 'TOTAL TALK TIME': total_talk_time,
+                'TALK TIME AVE': talk_time_ave,
                 'PTP ACC': ptp_acc,
                 'PTP RATE': round(ptp_rate),
                 'TOTAL PTP AMOUNT': total_ptp_amount,
