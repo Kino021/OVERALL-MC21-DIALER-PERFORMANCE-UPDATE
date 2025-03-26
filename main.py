@@ -52,7 +52,7 @@ def to_excel(df_dict):
             'align': 'center',
             'valign': 'vcenter',
             'border': 1,
-            'num_format': '0.00%'  # Updated to show 2 decimal places
+            'num_format': '0.00%'
         })
         date_format = workbook.add_format({
             'align': 'center',
@@ -68,17 +68,21 @@ def to_excel(df_dict):
         })
         
         for sheet_name, df in df_dict.items():
-            df.to_excel(writer, sheet_name=sheet_name, index=False, startrow=1)
+            # Convert percentage strings back to floats for Excel
+            df_for_excel = df.copy()
+            df_for_excel['CALL DROP RATIO #'] = df_for_excel['CALL DROP RATIO #'].str.rstrip('%').astype(float)
+            
+            df_for_excel.to_excel(writer, sheet_name=sheet_name, index=False, startrow=1)
             worksheet = writer.sheets[sheet_name]
             
             worksheet.merge_range('A1:' + chr(65 + len(df.columns) - 1) + '1', sheet_name, title_format)
             
-            for col_num, col_name in enumerate(df.columns):
+            for col_num, col_name in enumerate(df_for_excel.columns):
                 worksheet.write(1, col_num, col_name, header_format)
             
-            for row_num in range(2, len(df) + 2):
-                for col_num, col_name in enumerate(df.columns):
-                    value = df.iloc[row_num - 2, col_num]
+            for row_num in range(2, len(df_for_excel) + 2):
+                for col_num, col_name in enumerate(df_for_excel.columns):
+                    value = df_for_excel.iloc[row_num - 2, col_num]
                     if col_name == 'DATE':
                         if isinstance(value, (pd.Timestamp, datetime.date)):
                             worksheet.write_datetime(row_num, col_num, value, date_format)
@@ -93,9 +97,9 @@ def to_excel(df_dict):
                     else:
                         worksheet.write(row_num, col_num, value, center_format)
             
-            for col_num, col_name in enumerate(df.columns):
+            for col_num, col_name in enumerate(df_for_excel.columns):
                 max_len = max(
-                    df[col_name].astype(str).str.len().max(),
+                    df_for_excel[col_name].astype(str).str.len().max(),
                     len(col_name)
                 ) + 2
                 worksheet.set_column(col_num, col_num, max_len)
@@ -157,6 +161,8 @@ if uploaded_file is not None:
                 call_drop_ratio = (call_drop_count / connected_acc * 100) if connected_acc != 0 else 0
             else:
                 call_drop_ratio = (system_drop / connected_acc * 100) if connected_acc != 0 else 0
+            # Format as percentage string with 2 decimal places
+            call_drop_ratio_formatted = f"{call_drop_ratio:.2f}%"
 
             collectors = group[group['CALL DURATION'].notna()]['REMARK BY'].nunique()
             total_talk_seconds = group['TALK TIME DURATION'].sum()
@@ -181,7 +187,7 @@ if uploaded_file is not None:
                 'TOTAL BALANCE': total_balance,
                 'CALL DROP #': call_drop_count,
                 'SYSTEM DROP': system_drop,
-                'CALL DROP RATIO #': call_drop_ratio,  # Removed round() to keep decimal precision
+                'CALL DROP RATIO #': call_drop_ratio_formatted,
             }
             
             summary_table = pd.concat([summary_table, pd.DataFrame([summary_data])], ignore_index=True)
