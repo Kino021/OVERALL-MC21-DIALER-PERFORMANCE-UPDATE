@@ -63,21 +63,21 @@ def to_excel(df_dict):
         })
         
         for sheet_name, df in df_dict.items():
-            # Write the title at the top of the sheet
-            df.to_excel(writer, sheet_name=sheet_name, index=False, startrow=2)  # Start data at row 2 to leave space for title
+            # Write the title at the top of the sheet and start data immediately below
+            df.to_excel(writer, sheet_name=sheet_name, index=False, startrow=1)  # Start data at row 1 (headers at row 2)
             worksheet = writer.sheets[sheet_name]
             
             # Write the title (sheet name) in the first row, centered across columns
             worksheet.merge_range('A1:' + chr(65 + len(df.columns) - 1) + '1', sheet_name, title_format)
             
-            # Write headers with red background
+            # Write headers with red background (row 2)
             for col_num, col_name in enumerate(df.columns):
-                worksheet.write(2, col_num, col_name, header_format)  # Headers start at row 2 (index 2)
+                worksheet.write(1, col_num, col_name, header_format)  # Headers start at row 1 (index 1)
             
-            # Apply formatting to data rows
-            for row_num in range(3, len(df) + 3):  # Start from row 3 (index 3) to skip title and header
+            # Apply formatting to data rows (starting from row 3)
+            for row_num in range(2, len(df) + 2):  # Start from row 2 (index 2) to skip title and header
                 for col_num, col_name in enumerate(df.columns):
-                    value = df.iloc[row_num - 3, col_num]
+                    value = df.iloc[row_num - 2, col_num]
                     if col_name == 'DATE':
                         if isinstance(value, (pd.Timestamp, datetime.date)):
                             worksheet.write_datetime(row_num, col_num, value, date_format)
