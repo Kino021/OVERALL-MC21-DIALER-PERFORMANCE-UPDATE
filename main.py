@@ -70,7 +70,8 @@ def to_excel(df_dict):
         for sheet_name, df in df_dict.items():
             # Convert percentage strings back to floats for Excel
             df_for_excel = df.copy()
-            df_for_excel['CALL DROP RATIO #'] = df_for_excel['CALL DROP RATIO #'].str.rstrip('%').astype(float)
+            for col in ['PENETRATION RATE (%)', 'CONNECTED RATE (%)', 'PTP RATE', 'CALL DROP RATIO #']:
+                df_for_excel[col] = df_for_excel[col].str.rstrip('%').astype(float)
             
             df_for_excel.to_excel(writer, sheet_name=sheet_name, index=False, startrow=1)
             worksheet = writer.sheets[sheet_name]
@@ -147,10 +148,13 @@ if uploaded_file is not None:
             total_dialed = group['ACCOUNT NO.'].count()
             connected = group[group['CALL STATUS'] == 'CONNECTED']['ACCOUNT NO.'].nunique()
             penetration_rate = (total_dialed / accounts * 100) if accounts != 0 else 0
+            penetration_rate_formatted = f"{penetration_rate:.2f}%"
             connected_acc = group[group['CALL STATUS'] == 'CONNECTED']['ACCOUNT NO.'].count()
             connected_rate = (connected_acc / total_dialed * 100) if total_dialed != 0 else 0
+            connected_rate_formatted = f"{connected_rate:.2f}%"
             ptp_acc = group[(group['STATUS'].str.contains('PTP', na=False)) & (group['PTP AMOUNT'] != 0)]['ACCOUNT NO.'].nunique()
             ptp_rate = (ptp_acc / connected * 100) if connected != 0 else 0
+            ptp_rate_formatted = f"{ptp_rate:.2f}%"
             total_ptp_amount = group[(group['STATUS'].str.contains('PTP', na=False)) & (group['PTP AMOUNT'] != 0)]['PTP AMOUNT'].sum()
             total_balance = group[(group['PTP AMOUNT'] != 0)]['BALANCE'].sum()
             system_drop = group[(group['STATUS'].str.contains('DROPPED', na=False)) & (group['REMARK BY'] == 'SYSTEM')]['ACCOUNT NO.'].count()
@@ -161,7 +165,6 @@ if uploaded_file is not None:
                 call_drop_ratio = (call_drop_count / connected_acc * 100) if connected_acc != 0 else 0
             else:
                 call_drop_ratio = (system_drop / connected_acc * 100) if connected_acc != 0 else 0
-            # Format as percentage string with 2 decimal places
             call_drop_ratio_formatted = f"{call_drop_ratio:.2f}%"
 
             collectors = group[group['CALL DURATION'].notna()]['REMARK BY'].nunique()
@@ -175,14 +178,14 @@ if uploaded_file is not None:
                 'COLLECTORS': collectors,
                 'ACCOUNTS': accounts,
                 'TOTAL DIALED': total_dialed,
-                'PENETRATION RATE (%)': round(penetration_rate),
+                'PENETRATION RATE (%)': penetration_rate_formatted,
                 'CONNECTED #': connected,
-                'CONNECTED RATE (%)': round(connected_rate),
+                'CONNECTED RATE (%)': connected_rate_formatted,
                 'CONNECTED ACC': connected_acc,
                 'TOTAL TALK TIME': total_talk_time,
                 'TALK TIME AVE': talk_time_ave,
                 'PTP ACC': ptp_acc,
-                'PTP RATE': round(ptp_rate),
+                'PTP RATE': ptp_rate_formatted,
                 'TOTAL PTP AMOUNT': total_ptp_amount,
                 'TOTAL BALANCE': total_balance,
                 'CALL DROP #': call_drop_count,
