@@ -10,6 +10,7 @@ st.title('Daily Remark Summary')
 
 @st.cache_data
 def load_data(uploaded_file):
+    st.write("Test")
     df = pd.read_excel(uploaded_file)
     df.columns = df.columns.str.strip().str.upper()
     df['DATE'] = pd.to_datetime(df['DATE'], errors='coerce')
