@@ -23,7 +23,6 @@ def to_excel(df_dict):
     with ExcelWriter(output, engine='xlsxwriter', date_format='yyyy-mm-dd') as writer:
         workbook = writer.book
         
-        # Define formats (unchanged)
         title_format = workbook.add_format({
             'bold': True,
             'font_size': 14,
@@ -121,7 +120,11 @@ if uploaded_file is not None:
     df['CYCLE'] = df['CYCLE'].astype(str)
 
     def format_seconds_to_hms(seconds):
-        return str(datetime.timedelta(seconds=int(seconds)))
+        seconds = int(seconds)
+        hours = seconds // 3600
+        minutes = (seconds % 3600) // 60
+        secs = seconds % 60
+        return f"{hours:02d}:{minutes:02d}:{secs:02d}"
 
     def calculate_summary(df, remark_types, manual_correction=False):
         summary_columns = [
