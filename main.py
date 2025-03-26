@@ -24,6 +24,13 @@ def to_excel(df_dict):
         workbook = writer.book
         
         # Define formats
+        title_format = workbook.add_format({
+            'bold': True,
+            'font_size': 14,
+            'align': 'center',
+            'valign': 'vcenter',
+            'bg_color': '#FFFF00',  # Yellow background for title
+        })
         center_format = workbook.add_format({
             'align': 'center',
             'valign': 'vcenter',
@@ -52,23 +59,26 @@ def to_excel(df_dict):
             'align': 'center',
             'valign': 'vcenter',
             'border': 1,
-            'num_format': 'yyyy-mm-dd'  # Explicit date format
+            'num_format': 'yyyy-mm-dd'
         })
         
         for sheet_name, df in df_dict.items():
-            df.to_excel(writer, sheet_name=sheet_name, index=False)
+            # Write the title at the top of the sheet
+            df.to_excel(writer, sheet_name=sheet_name, index=False, startrow=2)  # Start data at row 2 to leave space for title
             worksheet = writer.sheets[sheet_name]
+            
+            # Write the title (sheet name) in the first row, centered across columns
+            worksheet.merge_range('A1:' + chr(65 + len(df.columns) - 1) + '1', sheet_name, title_format)
             
             # Write headers with red background
             for col_num, col_name in enumerate(df.columns):
-                worksheet.write(0, col_num, col_name, header_format)
+                worksheet.write(2, col_num, col_name, header_format)  # Headers start at row 2 (index 2)
             
             # Apply formatting to data rows
-            for row_num in range(1, len(df) + 1):  # Start from 1 to skip header
+            for row_num in range(3, len(df) + 3):  # Start from row 3 (index 3) to skip title and header
                 for col_num, col_name in enumerate(df.columns):
-                    value = df.iloc[row_num - 1, col_num]
+                    value = df.iloc[row_num - 3, col_num]
                     if col_name == 'DATE':
-                        # Ensure value is a datetime object and write with date format
                         if isinstance(value, (pd.Timestamp, datetime.date)):
                             worksheet.write_datetime(row_num, col_num, value, date_format)
                         else:
@@ -97,7 +107,7 @@ if uploaded_file is not None:
     
     excluded_remarks = [
         "Broken Promise", "New files imported", "Updates when case reassign to another collector", 
-        "NDF IN ICS", "FOR PULL OUT (END OF HANDLING PERIOD)", "END OF HANDLING PERIOD" , "New Assignment -" ,
+        "NDF IN ICS", "FOR PULL OUT (END OF HANDLING PERIOD)", "END OF HANDLING PERIOD", "New Assignment -",
     ]
     df = df[~df['REMARK'].str.contains('|'.join(excluded_remarks), case=False, na=False)]
     df = df[~df['CALL STATUS'].str.contains('OTHERS', case=False, na=False)]
