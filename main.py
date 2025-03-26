@@ -52,7 +52,7 @@ def to_excel(df_dict):
             'align': 'center',
             'valign': 'vcenter',
             'border': 1,
-            'num_format': '0%'
+            'num_format': '0.00%'  # Updated to show 2 decimal places
         })
         date_format = workbook.add_format({
             'align': 'center',
@@ -181,7 +181,7 @@ if uploaded_file is not None:
                 'TOTAL BALANCE': total_balance,
                 'CALL DROP #': call_drop_count,
                 'SYSTEM DROP': system_drop,
-                'CALL DROP RATIO #': round(call_drop_ratio),
+                'CALL DROP RATIO #': call_drop_ratio,  # Removed round() to keep decimal precision
             }
             
             summary_table = pd.concat([summary_table, pd.DataFrame([summary_data])], ignore_index=True)
