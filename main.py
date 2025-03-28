@@ -113,8 +113,8 @@ if uploaded_file is not None:
     df = df[df['REMARK BY'] != 'SPMADRID']
     df = df[~df['DEBTOR'].str.contains("DEFAULT_LEAD_", case=False, na=False)]
     df = df[~df['STATUS'].str.contains('ABORT', na=False)]
-    # Exclude specific PTP statuses with proper spacing
-    df = df[~df['STATUS'].str.contains('PTP NEW - CURED_GHOST|PTP NEW - CURED_7 DAYS', case=False, na=False)]
+    # Exclude remarks containing "1_(11-digit number) - PTP NEW"
+    df = df[~df['REMARK'].str.contains(r'1_\d{11} - PTP NEW', case=False, na=False, regex=True)]
     
     excluded_remarks = [
         "Broken Promise", "New files imported", "Updates when case reassign to another collector", 
