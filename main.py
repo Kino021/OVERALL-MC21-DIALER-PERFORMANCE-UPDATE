@@ -138,8 +138,9 @@ if uploaded_file is not None:
     def calculate_summary(df, remark_types, manual_correction=False):
         summary_columns = [
             'DATE', 'CLIENT', 'COLLECTORS', 'ACCOUNTS', 'TOTAL DIALED', 'PENETRATION RATE (%)', 'CONNECTED #', 
-            'CONNECTED RATE (%)', 'CONNECTED ACC', 'TOTAL TALK TIME', 'TALK TIME AVE', 'PTP ACC', 'PTP RATE', 
-            'TOTAL PTP AMOUNT', 'TOTAL BALANCE', 'CALL DROP #', 'SYSTEM DROP', 'CALL DROP RATIO #'
+            'CONNECTED RATE (%)', 'CONNECTED ACC', 'TOTAL TALK TIME', 'TALK TIME AVE', 'CONNECTED AVE',
+            'PTP ACC', 'PTP RATE', 'TOTAL PTP AMOUNT', 'TOTAL BALANCE', 'CALL DROP #', 'SYSTEM DROP', 
+            'CALL DROP RATIO #'
         ]
         
         summary_table = pd.DataFrame(columns=summary_columns)
@@ -175,6 +176,7 @@ if uploaded_file is not None:
             total_talk_seconds = group['TALK TIME DURATION'].sum()
             total_talk_time = format_seconds_to_hms(total_talk_seconds)
             talk_time_ave = format_seconds_to_hms(total_talk_seconds / collectors) if collectors != 0 else "00:00:00"
+            connected_ave = round(connected_acc / collectors, 2) if collectors != 0 else 0
 
             summary_data = {
                 'DATE': date,
@@ -188,6 +190,7 @@ if uploaded_file is not None:
                 'CONNECTED ACC': connected_acc,
                 'TOTAL TALK TIME': total_talk_time,
                 'TALK TIME AVE': talk_time_ave,
+                'CONNECTED AVE': connected_ave,
                 'PTP ACC': ptp_acc,
                 'PTP RATE': ptp_rate_formatted,
                 'TOTAL PTP AMOUNT': total_ptp_amount,
