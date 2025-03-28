@@ -154,7 +154,7 @@ if uploaded_file is not None:
             connected_acc = group[group['CALL STATUS'] == 'CONNECTED']['ACCOUNT NO.'].count()
             connected_rate = (connected_acc / total_dialed * 100) if total_dialed != 0 else 0
             connected_rate_formatted = f"{connected_rate:.2f}%"
-            ptp_acc = group[(group['a['STATUS'].str.contains('PTP', na=False)) & (group['PTP AMOUNT'] != 0)]['ACCOUNT NO.'].nunique()
+            ptp_acc = group[(group['STATUS'].str.contains('PTP', na=False)) & (group['PTP AMOUNT'] != 0)]['ACCOUNT NO.'].nunique()
             ptp_rate = (ptp_acc / connected * 100) if connected != 0 else 0
             ptp_rate_formatted = f"{ptp_rate:.2f}%"
             total_ptp_amount = group[(group['STATUS'].str.contains('PTP', na=False)) & (group['PTP AMOUNT'] != 0)]['PTP AMOUNT'].sum()
