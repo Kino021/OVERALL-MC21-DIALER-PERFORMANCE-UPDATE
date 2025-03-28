@@ -113,7 +113,7 @@ if uploaded_file is not None:
     df = df[df['REMARK BY'] != 'SPMADRID']
     df = df[~df['DEBTOR'].str.contains("DEFAULT_LEAD_", case=False, na=False)]
     df = df[~df['STATUS'].str.contains('ABORT', na=False)]
-    # Exclude specific PTP statuses
+    # Exclude specific PTP statuses with proper spacing
     df = df[~df['STATUS'].str.contains('PTP NEW - CURED_GHOST|PTP NEW - CURED_7 DAYS', case=False, na=False)]
     
     excluded_remarks = [
