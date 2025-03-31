@@ -209,7 +209,7 @@ if uploaded_file is not None:
         result = {}
         unique_cycles = df['CYCLE'].unique()
         for cycle in unique_cycles:
-            if cycle == 'Unknown':
+            if cycle == 'Unknown' or cycle.lower() == 'na':  # Skip 'Unknown' and 'na' cycles
                 continue
             cycle_df = df[df['CYCLE'] == cycle]
             result[f"Cycle {cycle}"] = calculate_summary(cycle_df, remark_types, manual_correction)
@@ -232,22 +232,24 @@ if uploaded_file is not None:
 
     st.write("## Per Cycle Predictive Summary Tables")
     for cycle, table in predictive_cycle_summaries.items():
-        with st.container():
-            st.subheader(f"Summary for {cycle}")
-            st.write(table)
+        if "Cycle na" not in cycle.lower():  # Hide if cycle name contains "na"
+            with st.container():
+                st.subheader(f"Summary for {cycle}")
+                st.write(table)
 
     st.write("## Per Cycle Manual Summary Tables")
     for cycle, table in manual_cycle_summaries.items():
-        with st.container():
-            st.subheader(f"Summary for {cycle}")
-            st.write(table)
+        if "Cycle na" not in cycle.lower():  # Hide if cycle name contains "na"
+            with st.container():
+                st.subheader(f"Summary for {cycle}")
+                st.write(table)
 
     excel_data = {
         'Combined Summary': combined_summary,
         'Predictive Summary': predictive_summary,
         'Manual Summary': manual_summary,
-        **{f"Predictive {k}": v for k, v in predictive_cycle_summaries.items()},
-        **{f"Manual {k}": v for k, v in manual_cycle_summaries.items()}
+        **{f"Predictive {k}": v for k, v in predictive_cycle_summaries.items() if "Cycle na" not in k.lower()},
+        **{f"Manual {k}": v for k, v in manual_cycle_summaries.items() if "Cycle na" not in k.lower()}
     }
 
     st.download_button(
