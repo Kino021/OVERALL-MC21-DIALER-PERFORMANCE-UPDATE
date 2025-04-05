@@ -150,6 +150,13 @@ if uploaded_file is not None:
         df_filtered['DATE'] = df_filtered['DATE'].dt.date  
 
         for (date, client), group in df_filtered.groupby(['DATE', 'CLIENT']):
+            # Calculate the number of collectors for this group
+            collectors = group[group['CALL DURATION'].notna()]['REMARK BY'].nunique()
+            
+            # Skip this group if collectors is 0
+            if collectors == 0:
+                continue
+            
             accounts = group['ACCOUNT NO.'].nunique()
             total_dialed = group['ACCOUNT NO.'].count()
             connected = group[group['CALL STATUS'] == 'CONNECTED']['ACCOUNT NO.'].nunique()
@@ -173,7 +180,6 @@ if uploaded_file is not None:
                 call_drop_ratio = (system_drop / connected_acc * 100) if connected_acc != 0 else 0
             call_drop_ratio_formatted = f"{call_drop_ratio:.2f}%"
 
-            collectors = group[group['CALL DURATION'].notna()]['REMARK BY'].nunique()
             total_talk_seconds = group['TALK TIME DURATION'].sum()
             total_talk_time = format_seconds_to_hms(total_talk_seconds)
             talk_time_ave = format_seconds_to_hms(total_talk_seconds / collectors) if collectors != 0 else "00:00:00"
